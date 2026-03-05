@@ -67,9 +67,10 @@ func (l *user) Login(ctx context.Context, req *domain.LoginReq) (resp *domain.Lo
 
 	// 登录成功，返回登录值
 	return &domain.LoginResp{
-		Id:     userEntity.Id,
-		Name:   userEntity.Name,
-		Status: int64(userEntity.Status),
+		Id:       userEntity.Id,
+		Name:     userEntity.Name,
+		Status:   int64(userEntity.Status),
+		IsSystem: userEntity.IsSystem,
 	}, nil
 }
 

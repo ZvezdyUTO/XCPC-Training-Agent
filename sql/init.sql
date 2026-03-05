@@ -1,19 +1,3 @@
--- CREATE TABLE users (
---                        id          VARCHAR(32)  NOT NULL,
---                        name        VARCHAR(255) NOT NULL,
---                        password    VARCHAR(255) NOT NULL,
---                        status      TINYINT      NOT NULL,
---                        is_system   TINYINT      NOT NULL,
---                        create_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
---                        update_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
---                        delete_at   TIMESTAMP    NULL DEFAULT NULL,
---                        cf_handle       VARCHAR(64)  NULL,
---                        ac_handle       VARCHAR(64)  NULL,
---                        PRIMARY KEY (id),
---                        UNIQUE KEY uk_cf_handle (cf_handle),
---                        UNIQUE KEY uk_ac_handle (ac_handle)
--- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE users (
                        id              VARCHAR(32)  NOT NULL,
                        name            VARCHAR(255) NOT NULL,
@@ -73,6 +57,7 @@ CREATE TABLE daily_training_stats (
                                       ac_new_2800_plus    INT NOT NULL DEFAULT 0,
 
                                       created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        deleted_at TIMESTAMP NULL DEFAULT NULL,
 
                                       PRIMARY KEY (student_id, stat_date),
 
@@ -100,6 +85,7 @@ CREATE TABLE contest_records (
                                  performance    INT          NULL,
 
                                  created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                 deleted_at TIMESTAMP NULL DEFAULT NULL,
 
                                  PRIMARY KEY (student_id, platform, contest_id),
 

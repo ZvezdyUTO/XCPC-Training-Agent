@@ -1,10 +1,5 @@
 package domain
 
-type StateKV struct {
-	Key int64   `json:"key"`
-	Val float64 `json:"val"`
-}
-
 type User struct {
 	Id       string `json:"id;primary_key"`
 	Name     string `json:"name"`

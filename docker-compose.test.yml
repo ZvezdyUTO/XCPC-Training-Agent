@@ -1,0 +1,39 @@
+services:
+  mysql_test:
+    image: mysql:8.0
+    container_name: aata_mysql_test
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: aata_test
+    ports:
+      - "3307:3306"
+    command:
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+
+#  redis:
+#    image: redis:7
+#    container_name: aATA-redis
+#    ports:
+#      - "6379:6379"
+#
+#  app:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.dev
+#    container_name: aATA-app
+#    ports:
+#      - "8888:8888"
+#    volumes:
+#      - .:/app
+#    depends_on:
+#      mysql:
+#        condition: service_healthy
+#      redis:
+#        condition: service_started
+#
+#    restart: always
+
+volumes:
+  mysql_data:

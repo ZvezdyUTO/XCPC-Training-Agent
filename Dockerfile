@@ -19,7 +19,20 @@ FROM alpine:latest
 
 WORKDIR /app
 
+# 安装 python3 和 pip
+RUN apk add --no-cache python3 py3-pip
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装依赖
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# 复制 Go 编译产物
 COPY --from=builder /app/app .
+
+# 复制爬虫脚本
+COPY crawler_cli.py .
 
 EXPOSE 8888
 

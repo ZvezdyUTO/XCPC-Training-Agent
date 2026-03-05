@@ -20,6 +20,8 @@ type (
 		FindRange(ctx context.Context, studentID string, from, to time.Time) ([]*DailyTrainingStats, error)
 		// DeleteByDate 删除某用户某天的训练记录。
 		DeleteByDate(ctx context.Context, studentID string, date time.Time) error
+		//DeleteRange 批量删除训练记录
+		DeleteRange(ctx context.Context, studentIDs []string, from, to time.Time) error
 	}
 
 	defaultDailyTrainingStats struct {
@@ -36,11 +38,14 @@ func (m *defaultDailyTrainingStats) model() *gorm.DB {
 }
 
 func (m *defaultDailyTrainingStats) Insert(ctx context.Context, data *DailyTrainingStats) error {
-	return m.model().Create(data).Error
+	return m.model().
+		WithContext(ctx).
+		Create(data).Error
 }
 
 func (m *defaultDailyTrainingStats) Upsert(ctx context.Context, data *DailyTrainingStats) error {
 	return m.model().
+		WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{
 				{Name: "student_id"},
@@ -59,6 +64,7 @@ func (m *defaultDailyTrainingStats) FindByDate(
 
 	var res DailyTrainingStats
 	err := m.model().
+		WithContext(ctx).
 		Where("student_id = ? AND stat_date = ?", studentID, date).
 		First(&res).Error
 
@@ -76,6 +82,7 @@ func (m *defaultDailyTrainingStats) FindRange(
 
 	var list []*DailyTrainingStats
 	err := m.model().
+		WithContext(ctx).
 		Where("student_id = ?", studentID).
 		Where("stat_date BETWEEN ? AND ?", from, to).
 		Order("stat_date ASC").
@@ -90,6 +97,24 @@ func (m *defaultDailyTrainingStats) DeleteByDate(
 	date time.Time,
 ) error {
 	return m.model().
+		WithContext(ctx).
 		Where("student_id = ? AND stat_date = ?", studentID, date).
 		Delete(&DailyTrainingStats{}).Error
+}
+
+func (m *defaultDailyTrainingStats) DeleteRange(
+	ctx context.Context,
+	studentIDs []string,
+	from, to time.Time,
+) error {
+
+	tx := m.model().
+		WithContext(ctx).
+		Where("stat_date BETWEEN ? AND ?", from, to)
+
+	if len(studentIDs) > 0 {
+		tx = tx.Where("student_id IN ?", studentIDs)
+	}
+
+	return tx.Delete(&DailyTrainingStats{}).Error
 }

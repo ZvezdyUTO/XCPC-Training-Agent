@@ -5,6 +5,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: aATAdb
+      MYSQL_ROOT_HOST: "%"
     ports:
       - "3307:3306"
     volumes:

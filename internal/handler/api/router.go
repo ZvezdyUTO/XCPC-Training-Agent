@@ -9,7 +9,8 @@ import (
 func initHandler(svc *svc.ServiceContext) []Handler {
 	// 实例化 Logic，拆分一类并且使用构造函数注入，使每个模块值依赖自身接口，并且保持边界清晰。
 	var (
-		userLogic = logic.NewUser(svc.UsersModel)
+		userLogic     = logic.NewUser(svc.UsersModel)
+		trainingLogic = logic.NewTrainingLogic(svc, nil)
 	)
 
 	// 实例化 Handler，将创建好的 Logic 实例注入
@@ -17,6 +18,7 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 		userSelf   = NewUserSelf(svc, userLogic)
 		adminUser  = NewAdminUser(svc, userLogic)
 		userPublic = NewUserPublic(svc, userLogic)
+		adminOp    = NewAdminOperator(svc, trainingLogic)
 	)
 
 	// 将所有实例化的 Handler 放入切片中返回
@@ -25,5 +27,6 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 		userSelf,
 		adminUser,
 		userPublic,
+		adminOp,
 	}
 }

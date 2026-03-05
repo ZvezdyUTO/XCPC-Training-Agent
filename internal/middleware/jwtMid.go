@@ -43,13 +43,13 @@ func (m *JWTMid) Handler(ctx *gin.Context) {
 
 	// 将解析出来的数据写入 ctx 中
 	// 1. 处理 uid
-	uidFloat, ok := claims["uid"].(float64)
+	uidFloat, ok := claims["uid"].(string)
 	if !ok {
 		ctx.JSON(401, gin.H{"msg": "Token 数据异常"})
 		ctx.Abort()
 		return
 	}
-	ctx.Set("uid", int64(uidFloat))
+	ctx.Set("uid", string(uidFloat))
 
 	// 2. 处理 isAdmin
 	isAdmin := false

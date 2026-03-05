@@ -5,23 +5,38 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1a988dbe-9c88-44dc-9f49-07dedad88c8e" name="更改" comment="优化用户逻辑，扩充数据库与数据模型">
-      <change afterPath="$PROJECT_DIR$/internal/model/contestrecordmodel.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/model/contestrecordtype.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatsmodel.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatstype.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pkg/cpStatus/cpStatus.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docker-compose.test.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/ac_client.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/ac_difficulty.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/aggregator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/cf_client.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/crawler_cli.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/python_crawler.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/python_crawler_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/crawler/service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/domain/recorddomain.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/domain/userdomain.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/handler/api/adminoperator.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/logic/record.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/logic/timetil.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/logic/training.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/logic/training_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile.dev" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile.dev" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/etc/local/api.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/etc/local/api.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/app/error.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/app/error.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/domain/domain.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/domain/domain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handler/api/handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/handler.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/domain/domain.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handler/api/router.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/router.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handler/api/userpublic.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/userpublic.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/logic/user.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/user.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/middleware/logging.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/middleware/logging.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/model/usersmodel.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/usersmodel.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/model/userstype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/userstype.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/middleware/jwtMid.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/middleware/jwtMid.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/contestrecordmodel.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/contestrecordmodel.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/contestrecordtype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/contestrecordtype.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/dailytrainingstatsmodel.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatsmodel.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/dailytrainingstatstype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatstype.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/svc/servicecontext.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/svc/servicecontext.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sql/init.sql" beforeDir="false" afterPath="$PROJECT_DIR$/sql/init.sql" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -32,6 +47,7 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="Python Script" />
         <option value="Go File" />
       </list>
     </option>
@@ -58,7 +74,8 @@
     </layout>
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
+    <option name="showPreview" value="true" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
@@ -71,6 +88,8 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "DefaultGoTemplateProperty": "Go File",
+    "Go 测试.aATA/internal/crawler 中的 TestPythonCrawler_FetchRange.executor": "Run",
+    "Go 测试.aATA/internal/logic 中的 TestTrainingLogic_RealSync.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.GoLinterPluginOnboardingV2": "true",
     "RunOnceActivity.GoLinterPluginStorageMigration": "true",
@@ -89,6 +108,43 @@
     "onboarding.tips.debug.path": "/home/zvezdyuto/GolandProjects/agentAcmTrainingAnalysis/main.go"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Go 测试.aATA/internal/logic 中的 TestTrainingLogic_RealSync">
+    <configuration name="aATA/internal/crawler 中的 TestPythonCrawler_FetchRange" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="agentAcmTrainingAnalysis" />
+      <working_directory value="$PROJECT_DIR$/internal/crawler" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="aATA/internal/crawler" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <pattern value="^\QTestPythonCrawler_FetchRange\E$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="aATA/internal/logic 中的 TestTrainingLogic_RealSync" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="agentAcmTrainingAnalysis" />
+      <working_directory value="$PROJECT_DIR$/internal/logic" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="aATA/internal/logic" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <pattern value="^\QTestTrainingLogic_RealSync\E$" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go 测试.aATA/internal/logic 中的 TestTrainingLogic_RealSync" />
+        <item itemvalue="Go 测试.aATA/internal/crawler 中的 TestPythonCrawler_FetchRange" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

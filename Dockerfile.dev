@@ -2,6 +2,17 @@ FROM golang:1.26-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache git
+RUN apk add --no-cache git python3 py3-pip
+
+RUN python3 -m venv /opt/venv
+
+# 把 venv 加入 PATH
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["go", "run", "main.go", "-f", "./etc/local/api.yaml"]

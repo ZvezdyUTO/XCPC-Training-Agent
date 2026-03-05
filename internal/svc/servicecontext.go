@@ -2,6 +2,7 @@ package svc
 
 import (
 	"aATA/internal/config"
+	"aATA/internal/crawler"
 	"aATA/internal/middleware"
 	"aATA/internal/model"
 	"aATA/pkg/encrypt"
@@ -18,8 +19,11 @@ type ServiceContext struct {
 	ctx    context.Context
 
 	// 基础设施
-	JWT        *jwt.JWT
-	UsersModel model.UsersModel
+	JWT          *jwt.JWT
+	UsersModel   model.UsersModel
+	ContestModel model.ContestRecordModel
+	DailyModel   model.DailyTrainingStatsModel
+	Crawler      crawler.Crawler
 
 	// Middleware
 	JwtMid     *middleware.JWTMid
@@ -38,14 +42,22 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 		c.JWT.Expire,
 	)
 
+	craw := &crawler.PythonCrawler{
+		ScriptPath: "./internal/crawler/crawler_cli.py",
+		PythonBin:  "python3",
+	}
+
 	res := &ServiceContext{
-		ctx:        ctx,
-		Config:     c,
-		UsersModel: model.NewUsersModel(db),
-		JWT:        jwtTool,
-		JwtMid:     middleware.NewJWTMid(jwtTool),
-		LoggingMid: middleware.NewLoggingMid(),
-		AdminMid:   middleware.NewAdminMid(),
+		ctx:          ctx,
+		Config:       c,
+		UsersModel:   model.NewUsersModel(db),
+		ContestModel: model.NewContestRecordModel(db),
+		DailyModel:   model.NewDailyTrainingStatsModel(db),
+		JWT:          jwtTool,
+		JwtMid:       middleware.NewJWTMid(jwtTool),
+		LoggingMid:   middleware.NewLoggingMid(),
+		AdminMid:     middleware.NewAdminMid(),
+		Crawler:      craw,
 	}
 
 	return res, initServer(res)

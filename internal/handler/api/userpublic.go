@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
 	"aATA/internal/domain"
@@ -46,6 +48,7 @@ func (h *UserPublic) Login(ctx *gin.Context) {
 		"status":   res.Status,
 		"is_admin": res.IsSystem == 1,
 	})
+	fmt.Println(res.IsSystem)
 	if err != nil {
 		httpx.FailWithErr(ctx, err)
 		return
