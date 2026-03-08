@@ -14,8 +14,8 @@ type PythonCrawler struct {
 	PythonBin  string
 }
 
-// fetchResponse 返回查询结果：学号姓名，查询时间段中每日训练记录和比赛记录
-type fetchResponse struct {
+// FetchResponse 返回查询结果：学号姓名，查询时间段中每日训练记录和比赛记录
+type FetchResponse struct {
 	StudentID      string                      `json:"student_id"`
 	From           string                      `json:"from"`
 	To             string                      `json:"to"`
@@ -32,7 +32,7 @@ type Crawler interface {
 		acHandle string,
 		from time.Time,
 		to time.Time,
-	) (*fetchResponse, error)
+	) (*FetchResponse, error)
 }
 
 func (p *PythonCrawler) FetchRange(
@@ -42,7 +42,7 @@ func (p *PythonCrawler) FetchRange(
 	acHandle string,
 	from time.Time,
 	to time.Time,
-) (*fetchResponse, error) {
+) (*FetchResponse, error) {
 
 	cmd := exec.CommandContext(
 		ctx,
@@ -60,7 +60,7 @@ func (p *PythonCrawler) FetchRange(
 		return nil, errors.New(string(output))
 	}
 
-	var resp fetchResponse
+	var resp FetchResponse
 	if err := json.Unmarshal(output, &resp); err != nil {
 		return nil, err
 	}

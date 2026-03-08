@@ -27,8 +27,8 @@ func NewAdminUser(svcCtx *svc.ServiceContext, user logic.User) *AdminUser {
 func (h *AdminUser) InitRegister(engine *gin.Engine) {
 	// RESTful 架构，用 URL 表示资源，用 HTTP 动词表示动作
 	g := engine.Group("v1/admin/users", h.svcCtx.JwtMid.Handler, h.svcCtx.AdminMid.Handler)
-	g.GET("", h.List)
-	g.POST("", h.Create)
+	g.GET("/list", h.List)
+	g.POST("/create", h.Create)
 	g.DELETE("/:id", h.Delete)
 }
 
@@ -44,21 +44,6 @@ func (h *AdminUser) List(ctx *gin.Context) {
 		httpx.FailWithErr(ctx, err)
 	} else {
 		httpx.OkWithData(ctx, res)
-	}
-}
-
-func (h *AdminUser) Create(ctx *gin.Context) {
-	var req domain.User
-	if err := httpx.BindAndValidate(ctx, &req); err != nil {
-		httpx.FailWithErr(ctx, err)
-		return
-	}
-
-	err := h.user.Create(ctx.Request.Context(), &req)
-	if err != nil {
-		httpx.FailWithErr(ctx, err)
-	} else {
-		httpx.Ok(ctx)
 	}
 }
 
@@ -82,4 +67,20 @@ func (h *AdminUser) Delete(ctx *gin.Context) {
 	} else {
 		httpx.Ok(ctx)
 	}
+}
+
+func (h *AdminUser) Create(ctx *gin.Context) {
+	var req domain.AdminBatchCreateUsersReq
+	if err := httpx.BindAndValidate(ctx, &req); err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	result, err := h.user.Create(ctx.Request.Context(), req.Users)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	httpx.OkWithData(ctx, result)
 }

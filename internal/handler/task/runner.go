@@ -28,8 +28,10 @@ type Service interface {
 // Start 阻塞直到 ctx 取消
 func (r *Runner) Start(ctx context.Context) error {
 	// 这里代表了多个定时任务，只要定时任务包含修复、执行、安全停止逻辑，就能被接入并且启动
+	loc, _ := time.LoadLocation("Asia/Shanghai")
+	gocron.ChangeLoc(loc)
 	services := []Service{
-		//NewMonitor(r.svc),
+		NewDailyTrainingSync(r.svc, loc),
 	}
 
 	for _, s := range services {

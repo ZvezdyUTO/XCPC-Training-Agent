@@ -18,11 +18,15 @@ const (
 const IsSystemUser = 1
 
 type Users struct {
-	Id       string         `gorm:"column:id;primaryKey"`
-	Name     string         `gorm:"column:name"`
-	Password string         `gorm:"column:password"`
-	Status   UserStatus     `gorm:"column:status"`
-	IsSystem int64          `gorm:"column:is_system"`
+	Id       string     `gorm:"column:id"`
+	Name     string     `gorm:"column:name"`
+	Password string     `gorm:"column:password"`
+	Status   UserStatus `gorm:"column:status"`
+	IsSystem int64      `gorm:"column:is_system"`
+
+	CFHandle string `gorm:"column:cf_handle"`
+	ACHandle string `gorm:"column:ac_handle"`
+
 	CreateAt time.Time      `gorm:"column:create_at;autoCreateTime"`
 	UpdateAt time.Time      `gorm:"column:update_at;autoUpdateTime"`
 	DeleteAt gorm.DeletedAt `gorm:"column:delete_at"`

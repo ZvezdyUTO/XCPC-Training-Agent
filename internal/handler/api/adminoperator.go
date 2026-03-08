@@ -36,22 +36,42 @@ func (h *AdminOperator) SyncTraining(ctx *gin.Context) {
 		return
 	}
 
+	type FailedItem struct {
+		StudentID string `json:"student_id"`
+		Error     string `json:"error"`
+	}
+
+	failed := make([]FailedItem, 0)
+
 	for _, stu := range req.Students {
-		fmt.Println(stu)
+
+		fmt.Println(stu.StudentID)
 		err := h.training.SyncRange(
 			ctx.Request.Context(),
 			stu.StudentID,
-			stu.CFHandle,
-			stu.ACHandle,
 			req.From,
 			req.To,
 		)
-		fmt.Println(err)
+
 		if err != nil {
-			httpx.FailWithErr(ctx, err)
-			return
+			failed = append(failed, FailedItem{
+				StudentID: stu.StudentID,
+				Error:     err.Error(),
+			})
+			continue // ❗跳过，继续执行
 		}
 	}
 
-	httpx.Ok(ctx)
+	// 全部成功
+	if len(failed) == 0 {
+		httpx.Ok(ctx)
+		return
+	}
+
+	// 部分成功
+	httpx.OkWithData(ctx, gin.H{
+		"msg":        "partial success",
+		"failed_cnt": len(failed),
+		"failed":     failed,
+	})
 }

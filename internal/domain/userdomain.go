@@ -1,14 +1,33 @@
 package domain
 
+type AdminBatchCreateUsersReq struct {
+	Users []User `json:"users" binding:"required,dive"`
+}
+
+type BatchCreateUsersResp struct {
+	Total   int                   `json:"total"`
+	Success int                   `json:"success"`
+	Failed  []BatchCreateFailItem `json:"failed"`
+}
+
+type BatchCreateFailItem struct {
+	StudentID string `json:"student_id"`
+	Error     string `json:"error"`
+}
+
 type User struct {
-	Id       string `json:"id;primary_key"`
+	Id       string `json:"id"`
 	Name     string `json:"name"`
 	Password string `json:"password"`
 	Status   int64  `json:"status"`
 	IsSystem int64  `json:"is_system"`
-	CreateAt int64  `json:"create_at"`
-	UpdateAt int64  `json:"update_at"`
-	DeleteAt int64  `json:"delete_at"`
+
+	CFHandle string `json:"cf_handle"`
+	ACHandle string `json:"ac_handle"`
+
+	CreateAt int64 `json:"create_at"`
+	UpdateAt int64 `json:"update_at"`
+	DeleteAt int64 `json:"delete_at"`
 }
 
 type IdReq struct {

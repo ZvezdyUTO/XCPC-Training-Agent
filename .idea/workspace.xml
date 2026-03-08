@@ -5,39 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1a988dbe-9c88-44dc-9f49-07dedad88c8e" name="更改" comment="优化用户逻辑，扩充数据库与数据模型">
-      <change afterPath="$PROJECT_DIR$/docker-compose.test.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/ac_client.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/ac_difficulty.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/aggregator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/cf_client.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/crawler_cli.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/models.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/python_crawler.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/python_crawler_test.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/crawler/service.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/domain/recorddomain.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/domain/userdomain.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/handler/api/adminoperator.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/record.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/timetil.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/training.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/training_test.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/handler/task/daily_training_sync.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile.dev" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile.dev" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/domain/domain.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/crawler/python_crawler.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/crawler/python_crawler.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/domain/recorddomain.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/domain/recorddomain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/domain/userdomain.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/domain/userdomain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handler/api/adminoperator.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/adminoperator.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handler/api/adminuser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/adminuser.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/handler/api/router.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/router.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/handler/api/userpublic.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/userpublic.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handler/task/runner.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/task/runner.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logic/training.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/training.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/logic/user.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/user.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/middleware/jwtMid.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/middleware/jwtMid.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/model/contestrecordmodel.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/contestrecordmodel.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/model/contestrecordtype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/contestrecordtype.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/model/dailytrainingstatsmodel.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatsmodel.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/model/dailytrainingstatstype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatstype.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/svc/servicecontext.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/svc/servicecontext.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sql/init.sql" beforeDir="false" afterPath="$PROJECT_DIR$/sql/init.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/userstype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/userstype.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -85,29 +65,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go File",
-    "Go 测试.aATA/internal/crawler 中的 TestPythonCrawler_FetchRange.executor": "Run",
-    "Go 测试.aATA/internal/logic 中的 TestTrainingLogic_RealSync.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.GoLinterPluginOnboardingV2": "true",
-    "RunOnceActivity.GoLinterPluginStorageMigration": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.go.analysis.ui.options.defaults": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "last_opened_file_path": "/home/zvezdyuto/GolandProjects/agentAcmTrainingAnalysis",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "onboarding.tips.debug.path": "/home/zvezdyuto/GolandProjects/agentAcmTrainingAnalysis/main.go"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;Go 测试.aATA/internal/crawler 中的 TestPythonCrawler_FetchRange.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.aATA/internal/logic 中的 TestTrainingLogic_RealSync.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.GoLinterPluginOnboardingV2&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.GoLinterPluginStorageMigration&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.analysis.ui.options.defaults&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/zvezdyuto/GolandProjects/agentAcmTrainingAnalysis&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;onboarding.tips.debug.path&quot;: &quot;/home/zvezdyuto/GolandProjects/agentAcmTrainingAnalysis/main.go&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />

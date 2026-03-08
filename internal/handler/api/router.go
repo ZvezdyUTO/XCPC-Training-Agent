@@ -3,14 +3,22 @@ package api
 import (
 	"aATA/internal/logic"
 	"aATA/internal/svc"
+	"time"
 )
 
 // initHandler 实例化 Logic 层和 Handler 层，执行路由分发与依赖装配。
 func initHandler(svc *svc.ServiceContext) []Handler {
 	// 实例化 Logic，拆分一类并且使用构造函数注入，使每个模块值依赖自身接口，并且保持边界清晰。
+	loc, _ := time.LoadLocation("Asia/Shanghai")
 	var (
 		userLogic     = logic.NewUser(svc.UsersModel)
-		trainingLogic = logic.NewTrainingLogic(svc, nil)
+		trainingLogic = logic.NewTrainingLogic(
+			svc.UsersModel,
+			svc.ContestModel,
+			svc.DailyModel,
+			svc.Crawler,
+			loc,
+		)
 	)
 
 	// 实例化 Handler，将创建好的 Logic 实例注入

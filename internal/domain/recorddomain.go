@@ -4,8 +4,6 @@ import "time"
 
 type SyncStudentItem struct {
 	StudentID string `json:"student_id" binding:"required"`
-	CFHandle  string `json:"cf_handle"`
-	ACHandle  string `json:"ac_handle"`
 }
 
 type AdminSyncTrainingReq struct {

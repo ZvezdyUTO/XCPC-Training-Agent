@@ -26,7 +26,7 @@ func NewUserPublic(svcCtx *svc.ServiceContext, user logic.User) *UserPublic {
 func (h *UserPublic) InitRegister(engine *gin.Engine) {
 	g := engine.Group("v1/user")
 	g.POST("/login", h.Login)
-	g.POST("/register", h.Register)
+	//g.POST("/register", h.Register)
 }
 
 func (h *UserPublic) Login(ctx *gin.Context) {

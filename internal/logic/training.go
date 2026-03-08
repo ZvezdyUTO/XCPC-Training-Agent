@@ -1,68 +1,107 @@
 package logic
 
 import (
+	"aATA/internal/crawler"
+	"aATA/internal/domain"
 	"aATA/internal/model"
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
-
-	"aATA/internal/svc"
-
-	"gorm.io/gorm"
 )
 
 type TrainingLogic interface {
-	SyncDay(ctx context.Context, studentID, cfHandle, acHandle string, day time.Time) error
-	SyncAllHistory(ctx context.Context, studentID, cfHandle, acHandle string) error
-	SyncRange(ctx context.Context, studentID, cfHandle, acHandle string, from, to time.Time) error
+	SyncDay(ctx context.Context, studentID string, day time.Time) error
+	SyncAllUsersYesterday(ctx context.Context) error
+	SyncAllHistory(ctx context.Context, studentID string) error
+	SyncRange(ctx context.Context, studentID string, from, to time.Time) error
 }
 type trainingLogic struct {
-	svc *svc.ServiceContext
-	loc *time.Location
+	user    model.UsersModel
+	contest model.ContestRecordModel
+	daily   model.DailyTrainingStatsModel
+	crawler crawler.Crawler
+	loc     *time.Location
 }
 
-func NewTrainingLogic(svcCtx *svc.ServiceContext, loc *time.Location) TrainingLogic {
+func NewTrainingLogic(
+	user model.UsersModel,
+	contest model.ContestRecordModel,
+	daily model.DailyTrainingStatsModel,
+	crawler crawler.Crawler,
+	loc *time.Location,
+) TrainingLogic {
 	if loc == nil {
 		loc = time.Local
 	}
-	return &trainingLogic{svc: svcCtx, loc: loc}
+	return &trainingLogic{
+		user:    user,
+		contest: contest,
+		daily:   daily,
+		loc:     loc,
+		crawler: crawler,
+	}
 }
 
-// SyncDay：同步某一天（日常任务）
+// SyncDay 同步某一天（日常任务）
 func (l *trainingLogic) SyncDay(
 	ctx context.Context,
-	studentID, cfHandle, acHandle string,
+	studentID string,
 	day time.Time,
 ) error {
 	from, to := dayRange(day, l.loc)
-	return l.SyncRange(ctx, studentID, cfHandle, acHandle, from, to)
+	return l.SyncRange(ctx, studentID, from, to)
 }
 
-// SyncAllHistory：全量历史（初始化/重建）
+// SyncAllUsersYesterday 同步所有用户昨日的训练记录（管理员除外）
+func (l *trainingLogic) SyncAllUsersYesterday(ctx context.Context) error {
+	users, _, err := l.user.List(ctx, &domain.UserListReq{})
+	if err != nil {
+		return err
+	}
+
+	yesterday := time.Now().In(l.loc).AddDate(0, 0, -1)
+
+	for _, u := range users {
+		if u.IsSystem == model.IsSystemUser {
+			continue
+		}
+		if u.CFHandle == "" || u.ACHandle == "" {
+			continue
+		}
+
+		// 执行爬虫逻辑
+		if err := l.SyncDay(ctx, u.Id, yesterday); err != nil {
+			// 不中断，继续
+			continue
+		}
+	}
+	return nil
+}
+
+// SyncAllHistory 全量历史（初始化/重建）
 func (l *trainingLogic) SyncAllHistory(
 	ctx context.Context,
-	studentID, cfHandle, acHandle string,
+	studentID string,
 ) error {
 	from, to := allHistoryRange(time.Now(), l.loc)
-	return l.SyncRange(ctx, studentID, cfHandle, acHandle, from, to)
+	return l.SyncRange(ctx, studentID, from, to)
 }
 
 func (l *trainingLogic) SyncRange(
 	ctx context.Context,
-	studentID, cfHandle, acHandle string,
+	studentID string,
 	from, to time.Time,
 ) error {
 
 	//检查用户是否存在，如果不存在插入
-	if err := l.ensureUserExists(ctx, studentID); err != nil {
+	cfHandle, acHandle, err := l.getStudentHandle(ctx, studentID)
+	if err != nil {
 		return fmt.Errorf("check or insert user failed: %w", err)
 	}
-	fmt.Println("检查用户逻辑成功，已执行")
 
 	// 1) 调用爬虫（子进程 python）
-	resp, err := l.svc.Crawler.FetchRange(ctx, studentID, cfHandle, acHandle, from, to)
+	resp, err := l.crawler.FetchRange(ctx, studentID, cfHandle, acHandle, from, to)
 	if err != nil {
 		fmt.Println("爬虫调用失败")
 		fmt.Println(err)
@@ -72,32 +111,30 @@ func (l *trainingLogic) SyncRange(
 
 	// 2) 覆盖式同步：先删后写
 	// 比增量同步简单得多，且在“初始化/修复数据”场景可靠
-	if err := l.svc.ContestModel.DeleteRange(ctx, []string{studentID}, from, to); err != nil {
+	if err := l.contest.DeleteRange(ctx, []string{studentID}, from, to); err != nil {
 		return fmt.Errorf("delete contest range: %w", err)
 	}
-	if err := l.svc.DailyModel.DeleteRange(ctx, []string{studentID}, from, to); err != nil {
+	if err := l.daily.DeleteRange(ctx, []string{studentID}, from, to); err != nil {
 		return fmt.Errorf("delete daily range: %w", err)
 	}
 
 	// 3) 写 contest（逐条 insert）
 	for i := range resp.ContestRecords {
 		cr := resp.ContestRecords[i]
-		// 保险：强制 studentID（避免脚本输出不一致）
 		cr.StudentID = studentID
 
-		// 这里的类型是 domain.ContestRecord，但你的 model.Insert 参数是 *model.ContestRecord
 		// 需要：model 层的结构体 ≈ domain 层结构体（字段一致）
-		if err := l.svc.ContestModel.Upsert(ctx, model.ToModelContest(&cr)); err != nil {
+		if err := l.contest.Upsert(ctx, model.ToModelContest(&cr)); err != nil {
 			return fmt.Errorf("insert contest: %w", err)
 		}
 	}
 
-	// 4) 写 daily（逐条 upsert 更稳）
+	// 4) 写 daily（逐条 upsert）
 	for i := range resp.DailyStats {
 		ds := resp.DailyStats[i]
 		ds.StudentID = studentID
 
-		if err := l.svc.DailyModel.Upsert(ctx, model.ToModelDaily(&ds)); err != nil {
+		if err := l.daily.Upsert(ctx, model.ToModelDaily(&ds)); err != nil {
 			return fmt.Errorf("upsert daily: %w", err)
 		}
 	}
@@ -105,33 +142,27 @@ func (l *trainingLogic) SyncRange(
 	return nil
 }
 
-func (l *trainingLogic) ensureUserExists(ctx context.Context, userID string) error {
-	// 查询用户是否存在
-	if l.svc.UsersModel == nil {
-		return fmt.Errorf("UsersModel is not initialized")
+func (l *trainingLogic) getStudentHandle(ctx context.Context, studentID string) (string, string, error) {
+
+	if l.user == nil {
+		return "", "", fmt.Errorf("UsersModel is not initialized")
 	}
 
-	_, err := l.svc.UsersModel.FindByID(userID)
+	u, err := l.user.FindByID(studentID)
 	if err != nil {
-		// 如果用户不存在（或者其他错误），返回错误
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// 插入用户
-			newUser := &model.Users{
-				Id:       userID,
-				Name:     userID,             // 可以根据需求设置其他字段
-				Password: "default_password", // 默认密码，实际应用时需要改成更合适的逻辑
-				Status:   model.UserStatusNormal,
-				IsSystem: 0,
-			}
-			// 调用 model 插入用户
-			if err := l.svc.UsersModel.Insert(ctx, newUser); err != nil {
-				return fmt.Errorf("failed to insert user: %w", err)
-			}
-			log.Printf("Inserted new user: %s", userID)
-		} else {
-			// 其他查询错误
-			return fmt.Errorf("failed to find user: %w", err)
+		if errors.Is(err, model.ErrNotFound) {
+			return "", "", fmt.Errorf("user %s not found", studentID)
 		}
+		return "", "", fmt.Errorf("failed to find user: %w", err)
 	}
-	return nil
+
+	if u == nil {
+		return "", "", fmt.Errorf("user %s not found", studentID)
+	}
+
+	if u.CFHandle == "" || u.ACHandle == "" {
+		return "", "", fmt.Errorf("user %s handle not set", studentID)
+	}
+
+	return u.CFHandle, u.ACHandle, nil
 }

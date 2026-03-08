@@ -21,7 +21,7 @@ type User interface {
 	// Info 获取用户信息
 	Info(ctx context.Context, req int64) (resp *domain.User, err error)
 	// Create 管理员创建用户
-	Create(ctx context.Context, req *domain.User) (err error)
+	Create(ctx context.Context, req []domain.User) (*domain.BatchCreateUsersResp, error)
 	// List 管理员查看用户列表
 	List(ctx context.Context, d *domain.UserListReq) (*domain.UserListResp, error)
 
@@ -121,36 +121,74 @@ func (l *user) Register(ctx context.Context, req *domain.RegisterReq) (*domain.R
 	}, nil
 }
 
-func (l *user) Create(ctx context.Context, req *domain.User) error {
-	// 查表并创建用户
-	userEntity, err := l.usersModel.FindByID(req.Id)
-	if err != nil {
-		logx.Errors(ctx, "admin", "admin_create_user_failed", logx.Fields{
-			"stage": "check_name",
-			"name":  req.Name,
-			"error": err.Error(),
+func (l *user) Create(ctx context.Context, users []domain.User) (*domain.BatchCreateUsersResp, error) {
+
+	resp := &domain.BatchCreateUsersResp{
+		Total:   len(users),
+		Success: 0,
+		Failed:  make([]domain.BatchCreateFailItem, 0),
+	}
+
+	if len(users) == 0 {
+		return resp, nil
+	}
+
+	for _, u := range users {
+
+		if u.IsSystem == 1 {
+			resp.Failed = append(resp.Failed, domain.BatchCreateFailItem{
+				StudentID: u.Id,
+				Error:     "cannot create system user",
+			})
+			continue
+		}
+
+		exist, err := l.usersModel.FindByID(u.Id)
+		if err != nil && !errors.Is(err, model.ErrNotFound) {
+			resp.Failed = append(resp.Failed, domain.BatchCreateFailItem{
+				StudentID: u.Id,
+				Error:     err.Error(),
+			})
+			continue
+		}
+		if exist != nil {
+			resp.Failed = append(resp.Failed, domain.BatchCreateFailItem{
+				StudentID: u.Id,
+				Error:     "user already exists",
+			})
+			continue
+		}
+
+		pwdHash, err := encrypt.GenPasswordHash([]byte(u.Password))
+		if err != nil {
+			resp.Failed = append(resp.Failed, domain.BatchCreateFailItem{
+				StudentID: u.Id,
+				Error:     err.Error(),
+			})
+			continue
+		}
+
+		err = l.usersModel.Insert(ctx, &model.Users{
+			Id:       u.Id,
+			Name:     u.Name,
+			Password: string(pwdHash),
+			Status:   model.UserStatusNormal,
+			IsSystem: 0,
+			CFHandle: u.CFHandle,
+			ACHandle: u.ACHandle,
 		})
-		return err
+		if err != nil {
+			resp.Failed = append(resp.Failed, domain.BatchCreateFailItem{
+				StudentID: u.Id,
+				Error:     err.Error(),
+			})
+			continue
+		}
+
+		resp.Success++
 	}
 
-	if userEntity != nil {
-		return errno.ErrUserAlreadyExists
-	}
-
-	if err := l.createUser(ctx, req, "admin"); err != nil {
-		logx.Errors(ctx, "admin", "admin_create_user_failed", logx.Fields{
-			"stage": "create_user",
-			"name":  req.Name,
-			"error": err.Error(),
-		})
-		return err
-	}
-
-	logx.Infos(ctx, "admin", "admin_create_user_success", logx.Fields{
-		"name": req.Name,
-	})
-
-	return nil
+	return resp, nil
 }
 
 func (l *user) createUser(ctx context.Context, req *domain.User, from string) error {
@@ -165,12 +203,9 @@ func (l *user) createUser(ctx context.Context, req *domain.User, from string) er
 		Name:     req.Name,
 		Password: string(passwordHash),
 		Status:   model.UserStatus(req.Status),
-		IsSystem: func() int64 {
-			if from == "admin" {
-				return 1
-			}
-			return 0
-		}(),
+		IsSystem: req.IsSystem,
+		CFHandle: req.CFHandle,
+		ACHandle: req.ACHandle,
 	}); err != nil {
 		// 一律视为系统异常
 		return fmt.Errorf("insert user failed: %w", err)
