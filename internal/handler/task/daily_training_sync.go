@@ -14,7 +14,6 @@ type DailyTrainingSync struct {
 	svc      *svc.ServiceContext
 	training student_data.TrainingLogic
 	loc      *time.Location
-	compute  student_data.ComputeLogic
 }
 
 func NewDailyTrainingSync(svc *svc.ServiceContext, loc *time.Location) *DailyTrainingSync {
@@ -27,8 +26,7 @@ func NewDailyTrainingSync(svc *svc.ServiceContext, loc *time.Location) *DailyTra
 			svc.Crawler,
 			loc,
 		),
-		compute: student_data.NewComputeLogic(svc, loc),
-		loc:     loc,
+		loc: loc,
 	}
 }
 
@@ -58,13 +56,6 @@ func (s *DailyTrainingSync) Stop(ctx context.Context) {}
 func (s *DailyTrainingSync) getData(ctx context.Context) error {
 	// 先同步昨日训练数据
 	if err := s.training.SyncAllUsersYesterday(ctx); err != nil {
-		return err
-	}
-
-	// 计算昨日能力快照
-	yesterday := time.Now().In(s.loc).AddDate(0, 0, -1)
-
-	if err := s.compute.RecomputeAll(ctx, yesterday); err != nil {
 		return err
 	}
 

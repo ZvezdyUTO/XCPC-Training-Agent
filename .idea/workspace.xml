@@ -4,41 +4,23 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1a988dbe-9c88-44dc-9f49-07dedad88c8e" name="更改" comment="优化结构，新增自动爬取昨日记录、批量创建学生功能">
-      <change afterPath="$PROJECT_DIR$/internal/domain/agentdomain.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/handler/api/adminagent.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/llm/client.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/llm/llm.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/agent/controller.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/agent/prompt.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/agent/registry.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/agent/tool.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/agent/tools/fake_echo_tool.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/agent/types.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/agent_logic.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/logic/student_data/compute.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/model/teammetriccachemodel.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/model/teammetriccachetype.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/model/userabilitysnapshotmodel.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/model/userabilitysnapshottype.go" afterDir="false" />
+    <list default="true" id="1a988dbe-9c88-44dc-9f49-07dedad88c8e" name="更改" comment="新增了 agent 事件循环控制功能。">
+      <change afterPath="$PROJECT_DIR$/internal/logic/agent/tools/contestRatingSummaryTool.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/logic/agent/tools/trainingSummaryTool.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.test.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/etc/local/api.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/etc/local/api.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/domain/recorddomain.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/domain/recorddomain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handler/api/adminoperator.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/adminoperator.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handler/api/adminuser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/adminuser.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handler/api/router.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/router.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handler/api/userpublic.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/userpublic.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handler/api/userself.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/api/userself.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/handler/task/daily_training_sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/handler/task/daily_training_sync.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/logic/record.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/logic/timetil.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/student_data/timetil.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/logic/training.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/student_data/training.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/logic/training_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/model/userstype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/userstype.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logic/agent/controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/agent/controller.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logic/agent/prompt.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/agent/prompt.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logic/agent/tools/fake_echo_tool.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logic/agent/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/agent/types.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logic/agent_logic.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logic/agent_logic.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logic/student_data/compute.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/dailytrainingstatsmodel.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatsmodel.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/dailytrainingstatstype.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/model/dailytrainingstatstype.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/teammetriccachemodel.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/teammetriccachetype.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/userabilitysnapshotmodel.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/model/userabilitysnapshottype.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/svc/servicecontext.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/svc/servicecontext.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sql/init.sql" beforeDir="false" afterPath="$PROJECT_DIR$/sql/init.sql" afterDir="false" />
     </list>
@@ -225,7 +207,8 @@
     <MESSAGE value="框架" />
     <MESSAGE value="优化用户逻辑，扩充数据库与数据模型" />
     <MESSAGE value="优化结构，新增自动爬取昨日记录、批量创建学生功能" />
-    <option name="LAST_COMMIT_MESSAGE" value="优化结构，新增自动爬取昨日记录、批量创建学生功能" />
+    <MESSAGE value="新增了 agent 事件循环控制功能。" />
+    <option name="LAST_COMMIT_MESSAGE" value="新增了 agent 事件循环控制功能。" />
   </component>
   <component name="VgoModernizerVersionTracker">
     <upgrades>

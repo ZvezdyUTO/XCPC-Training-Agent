@@ -27,8 +27,6 @@ type ServiceContext struct {
 	ContestModel             model.ContestRecordModel
 	DailyModel               model.DailyTrainingStatsModel
 	Crawler                  crawler.Crawler
-	AbilityModel             model.UserAbilitySnapshotModel
-	TeamCacheModel           model.TeamMetricCacheModel
 	LLMClient                llm.Client
 	GetUserTrainingRangeTool agent.Tool
 
@@ -38,7 +36,8 @@ type ServiceContext struct {
 	LoggingMid *middleware.LoggingMid
 
 	// AgentTools
-	EchoTool agent.Tool
+	TrainingSummaryTool      agent.Tool
+	ContestRatingSummaryTool agent.Tool
 }
 
 func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, error) {
@@ -46,6 +45,11 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 	if err != nil {
 		return nil, err
 	}
+
+	// 统一拼装 model
+	dailyModel := model.NewDailyTrainingStatsModel(db)
+	userModel := model.NewUsersModel(db)
+	contestModel := model.NewContestRecordModel(db)
 
 	jwtTool := jwt.NewJWT(
 		c.JWT.Secret,
@@ -57,24 +61,27 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 		PythonBin:  "python3",
 	}
 
+	// 拼装 agent 工具
 	llmClient := llm.NewAliyunQwenClient("glm-4.7")
-	echoTool := tools.NewEchoTool()
+	TrainingSummaryTool := tools.NewTrainingSummaryTool(dailyModel)
+	ContestRatingSummaryTool := tools.NewContestRatingSummaryTool(contestModel)
 
 	res := &ServiceContext{
-		ctx:            ctx,
-		Config:         c,
-		UsersModel:     model.NewUsersModel(db),
-		ContestModel:   model.NewContestRecordModel(db),
-		DailyModel:     model.NewDailyTrainingStatsModel(db),
-		JWT:            jwtTool,
-		JwtMid:         middleware.NewJWTMid(jwtTool),
-		LoggingMid:     middleware.NewLoggingMid(),
-		AdminMid:       middleware.NewAdminMid(),
-		Crawler:        craw,
-		AbilityModel:   model.NewUserAbilitySnapshotModel(db),
-		TeamCacheModel: model.NewTeamMetricCacheModel(db),
-		LLMClient:      llmClient,
-		EchoTool:       echoTool,
+		ctx:          ctx,
+		Config:       c,
+		UsersModel:   userModel,
+		ContestModel: contestModel,
+		DailyModel:   dailyModel,
+
+		JWT:        jwtTool,
+		JwtMid:     middleware.NewJWTMid(jwtTool),
+		LoggingMid: middleware.NewLoggingMid(),
+		AdminMid:   middleware.NewAdminMid(),
+
+		Crawler:                  craw,
+		LLMClient:                llmClient,
+		TrainingSummaryTool:      TrainingSummaryTool,
+		ContestRatingSummaryTool: ContestRatingSummaryTool,
 	}
 
 	return res, initServer(res)

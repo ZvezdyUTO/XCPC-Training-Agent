@@ -30,10 +30,18 @@ type AgentState struct {
 	Step         int
 }
 
+type FinalOutput struct {
+	DecisionType  string                 `json:"decision_type"`
+	FocusStudents []string               `json:"focus_students"`
+	Confidence    float64                `json:"confidence"`
+	Report        string                 `json:"report"`
+	Metrics       map[string]interface{} `json:"metrics"`
+}
+
 type LLMResponse struct {
-	Action      string                 `json:"action"`    // call_tool | finish
-	ToolName    string                 `json:"tool_name"` // if call_tool
-	Arguments   map[string]interface{} `json:"arguments"` // if call_tool
+	Action      string                 `json:"action"`
+	ToolName    string                 `json:"tool_name"`
+	Arguments   map[string]interface{} `json:"arguments"`
 	Reasoning   string                 `json:"reasoning"`
-	FinalOutput map[string]interface{} `json:"final_output"` // if finish
+	FinalOutput *FinalOutput           `json:"final_output"`
 }

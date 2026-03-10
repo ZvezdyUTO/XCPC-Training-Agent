@@ -50,6 +50,11 @@ type DailyTrainingStats struct {
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
 }
 
+type RankItem struct {
+	StudentID string
+	Total     int
+}
+
 func ToModelDaily(d *domain.DailyTrainingStats) *DailyTrainingStats {
 	return &DailyTrainingStats{
 		StudentID: d.StudentID,

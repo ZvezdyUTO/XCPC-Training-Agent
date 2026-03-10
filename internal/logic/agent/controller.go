@@ -48,15 +48,13 @@ func NewController(
 
 // Run 核心事件循环逻辑
 func (c *Controller) Run(ctx context.Context, input AgentInput) (map[string]interface{}, []string, error) {
-	// 限制每个工具最多调用两次
-	toolCallCount := make(map[string]int)
 
 	state := AgentState{
 		Input: input,
 	}
 
-	// 最多执行五次调用，防止无限循环
-	for state.Step = 0; state.Step < 5; state.Step++ {
+	// 防止无限循环
+	for state.Step = 0; state.Step < 10; state.Step++ {
 
 		prompt := buildPrompt(state, c.Registry) //注入提示词
 		fmt.Println("发送：", prompt)
@@ -98,13 +96,6 @@ func (c *Controller) Run(ctx context.Context, input AgentInput) (map[string]inte
 
 		if resp.Action == "call_tool" {
 
-			// 限制工具调用次数
-			if toolCallCount[resp.ToolName] >= 2 {
-				return nil, state.ReasoningLog, errors.New("tool call limit exceeded")
-			}
-
-			toolCallCount[resp.ToolName]++
-
 			// 执行工具
 			fmt.Println("工具名称：", resp.ToolName)
 			rawArgs, _ := json.Marshal(resp.Arguments)
@@ -132,10 +123,19 @@ func (c *Controller) Run(ctx context.Context, input AgentInput) (map[string]inte
 
 		// 终止机制，事件循环调用完成
 		if resp.Action == "finish" {
-			if resp.FinalOutput["decision_type"] == nil {
-				return nil, state.ReasoningLog, errors.New("invalid final_output schema")
+			if resp.FinalOutput == nil {
+				return nil, state.ReasoningLog, errors.New("missing final_output")
 			}
-			return resp.FinalOutput, state.ReasoningLog, nil
+
+			if resp.FinalOutput.DecisionType == "" {
+				return nil, state.ReasoningLog, errors.New("missing decision_type")
+			}
+
+			if resp.FinalOutput.Report == "" {
+				return nil, state.ReasoningLog, errors.New("missing report")
+			}
+
+			return structToMap(resp.FinalOutput), state.ReasoningLog, nil
 		}
 	}
 
@@ -164,4 +164,15 @@ func cleanLLMOutput(raw string) string {
 	}
 
 	return raw
+}
+
+// structToMap 将回复格式转为 map
+func structToMap(f *FinalOutput) map[string]interface{} {
+	return map[string]interface{}{
+		"decision_type":  f.DecisionType,
+		"focus_students": f.FocusStudents,
+		"confidence":     f.Confidence,
+		"report":         f.Report,
+		"metrics":        f.Metrics,
+	}
 }
