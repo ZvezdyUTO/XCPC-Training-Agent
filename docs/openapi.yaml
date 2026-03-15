@@ -1,0 +1,713 @@
+openapi: 3.0.3
+info:
+  title: XCPC-Training-Agent API
+  version: 1.0.0
+  description: |
+    XCPC-Training-Agent 的 HTTP API 规范。
+
+    说明：
+    - 服务默认监听 `http://localhost:8888`
+    - 统一响应结构为 `{ code, data, msg }`
+    - 业务错误当前统一返回 `code: 50000`，具体语义依赖 HTTP 状态码和 `msg`
+servers:
+  - url: http://localhost:8888
+    description: Local development
+tags:
+  - name: Auth
+    description: 登录与身份相关接口
+  - name: User Self
+    description: 当前登录用户自助接口
+  - name: Admin Users
+    description: 管理员用户管理接口
+  - name: Admin Training
+    description: 管理员训练数据同步接口
+  - name: Admin Agent
+    description: 管理员 Agent 调度接口
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthFailResponse:
+      type: object
+      description: |
+        鉴权/权限失败时由中间件直接返回的响应结构。
+        注意：当前实现不走统一 `{code,data,msg}` 结构。
+      required:
+        - msg
+      properties:
+        msg:
+          type: string
+          example: 未登录
+    ResponseBase:
+      type: object
+      required:
+        - code
+        - data
+        - msg
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          description: 业务数据。不同接口内容不同。
+          nullable: true
+        msg:
+          type: string
+          example: success
+    EmptyObject:
+      type: object
+      additionalProperties: false
+      example: {}
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            code:
+              example: 50000
+            data:
+              $ref: '#/components/schemas/EmptyObject'
+            msg:
+              example: internal server error
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "2025001"
+        name:
+          type: string
+          example: 张三
+        password:
+          type: string
+          description: 仅在部分响应中出现，占位为空字符串
+          example: ""
+        status:
+          type: integer
+          example: 1
+        is_system:
+          type: integer
+          example: 0
+        cf_handle:
+          type: string
+          example: Faog
+        ac_handle:
+          type: string
+          example: Egrvigrf
+        create_at:
+          type: integer
+          example: 0
+        update_at:
+          type: integer
+          example: 0
+        delete_at:
+          type: integer
+          example: 0
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: "20001"
+        password:
+          type: string
+          example: "000000"
+    LoginUser:
+      type: object
+      properties:
+        token:
+          type: string
+          example: ""
+        id:
+          type: string
+          example: "20001"
+        name:
+          type: string
+          example: root
+        status:
+          type: integer
+          example: 1
+        is_system:
+          type: integer
+          example: 1
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                user:
+                  $ref: '#/components/schemas/LoginUser'
+    UserInfoResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/User'
+    UpdatePasswordRequest:
+      type: object
+      required:
+        - oldPwd
+        - newPwd
+      properties:
+        id:
+          type: string
+          description: 当前实现中不会实际使用
+          example: "2025001"
+        oldPwd:
+          type: string
+          example: "000000"
+        newPwd:
+          type: string
+          example: "123456"
+    EmptySuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/EmptyObject'
+    UserListResponseData:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 7
+        List:
+          type: array
+          description: 注意当前实现返回字段名是 `List`，不是 `list`
+          items:
+            $ref: '#/components/schemas/User'
+    UserListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/UserListResponseData'
+    UserListQuery:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+        page:
+          type: integer
+        count:
+          type: integer
+    BatchCreateUserInput:
+      type: object
+      required:
+        - id
+        - name
+        - password
+      properties:
+        id:
+          type: string
+          example: "2026001"
+        name:
+          type: string
+          example: 张三
+        password:
+          type: string
+          example: "123456"
+        cf_handle:
+          type: string
+          example: Faog
+        ac_handle:
+          type: string
+          example: Egrvigrf
+    BatchCreateUsersRequest:
+      type: object
+      required:
+        - users
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchCreateUserInput'
+    BatchCreateFailItem:
+      type: object
+      properties:
+        student_id:
+          type: string
+          example: "2026001"
+        error:
+          type: string
+          example: user already exists
+    BatchCreateUsersResponseData:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 1
+        success:
+          type: integer
+          example: 1
+        failed:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchCreateFailItem'
+    BatchCreateUsersResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BatchCreateUsersResponseData'
+    SyncStudentItem:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          example: "2025001"
+    SyncTrainingRequest:
+      type: object
+      required:
+        - students
+        - from
+        - to
+      properties:
+        students:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncStudentItem'
+        from:
+          type: string
+          format: date-time
+          example: "2025-01-01T00:00:00+00:00"
+        to:
+          type: string
+          format: date-time
+          example: "2025-03-15T23:59:59+00:00"
+    SyncTrainingPartialData:
+      type: object
+      properties:
+        msg:
+          type: string
+          example: partial success
+        failed_cnt:
+          type: integer
+          example: 1
+        failed:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchCreateFailItem'
+    SyncTrainingResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            data:
+              oneOf:
+                - $ref: '#/components/schemas/EmptyObject'
+                - $ref: '#/components/schemas/SyncTrainingPartialData'
+    AgentTaskRunRequest:
+      type: object
+      required:
+        - task
+      properties:
+        task:
+          type: string
+          example: 观察学号为 2025001 的学生在 2025 年的训练情况
+        params:
+          type: object
+          additionalProperties: true
+    AgentResult:
+      type: object
+      description: Agent 结果结构依赖模型输出，字段可能扩展
+      additionalProperties: true
+      example:
+        confidence: 0.9
+        decision_type: student_analysis
+        focus_students:
+          - "2025001"
+        metrics:
+          total_problems_solved: 140
+          contest_count: 45
+        report: 学生整体训练积极，比赛参与度较高。
+    AgentTaskRunResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                task:
+                  type: string
+                result:
+                  $ref: '#/components/schemas/AgentResult'
+                trace:
+                  type: array
+                  items:
+                    type: string
+paths:
+  /v1/user/login:
+    post:
+      tags:
+        - Auth
+      summary: 用户登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: 密码错误或请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/user/me:
+    get:
+      tags:
+        - User Self
+      summary: 获取当前登录用户信息
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfoResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - User Self
+      summary: 注销当前登录用户
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptySuccessResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '404':
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/user/password:
+    post:
+      tags:
+        - User Self
+      summary: 修改当前用户密码
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePasswordRequest'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptySuccessResponse'
+        '400':
+          description: 原密码错误或新密码不合法
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/users/list:
+    get:
+      tags:
+        - Admin Users
+      summary: 管理员查询用户列表
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: ids
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: 按学号过滤，可重复传参
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: 按姓名精确匹配
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: count
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '403':
+          description: 无权限（非管理员）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/users/create:
+    post:
+      tags:
+        - Admin Users
+      summary: 管理员批量创建用户
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchCreateUsersRequest'
+      responses:
+        '200':
+          description: 创建请求已处理。部分失败时仍返回 200，失败项在 `data.failed`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchCreateUsersResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '403':
+          description: 无权限（非管理员）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/users/{id}:
+    delete:
+      tags:
+        - Admin Users
+      summary: 管理员删除指定用户
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 用户 ID。当前实现按整数字符串解析
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptySuccessResponse'
+        '400':
+          description: 参数错误或不能删除自己
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '403':
+          description: 无权限（非管理员）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '404':
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/op/training/sync:
+    post:
+      tags:
+        - Admin Training
+      summary: 管理员按时间区间同步训练数据
+      description: |
+        遍历 `students` 中的每个用户执行同步。
+        - 全部成功时返回空对象
+        - 部分失败时仍返回 200，并在 `data.failed` 中列出失败项
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncTrainingRequest'
+      responses:
+        '200':
+          description: 同步完成或部分成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncTrainingResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '403':
+          description: 无权限（非管理员）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '500':
+          description: 服务内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/agent/task/run:
+    post:
+      tags:
+        - Admin Agent
+      summary: 管理员触发 Agent 分析任务
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTaskRunRequest'
+      responses:
+        '200':
+          description: 分析完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskRunResponse'
+        '401':
+          description: 未登录或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '403':
+          description: 无权限（非管理员）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthFailResponse'
+        '500':
+          description: 服务内部错误或上游 LLM / 爬虫失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

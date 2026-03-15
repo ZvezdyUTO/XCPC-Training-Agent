@@ -29,6 +29,15 @@
 
 ---
 
+## 接口文档
+
+项目现已补充标准接口文档，建议以 OpenAPI 规范为准：
+
+- `docs/openapi.yaml`：完整 OpenAPI 3.0 规范
+- `docs/API.md`：面向开发者的简版接口说明
+
+---
+
 ## 技术栈
 
 * **Go + Gin**：提供 RESTful API
@@ -143,30 +152,30 @@ volumes:
 
 1. 登录 root，获取管理员 token
 ```
-curl -s http://localhost:8080/v1/user/login \
+curl -s http://localhost:8888/v1/user/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"20001","password":"000000"}'
 ```
 
 2. 批量创建用户（把 token 填到 Authorization）
 ```
-curl -s http://localhost:8080/v1/admin/users/create \
+curl -s http://localhost:8888/v1/admin/users/create \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <TOKEN>' \
   -d '{"users":[{"id":"示例学号","name":"示例姓名","password":"默认密码","cf_handle":"示例codeforcesID","ac_handle":"示例atCoderID"}]}'
 ```
 
-3. 手动同步区间（只传 student_id）
-```
-curl -s http://localhost:8080/v1/admin/op/training/sync \
+3. 手动同步区间
+``` 
+curl -s http://localhost:8888/v1/admin/op/training/sync \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <TOKEN>' \
-  -d '{"students":[{"student_id":"示例学号"}],"from":"2026-03-01T00:00:00+08:00","to":"2026-03-07T23:59:59+08:00"}'
+  -d '{"students":[{"id":"示例学号"}],"from":"2026-03-01T00:00:00+08:00","to":"2026-03-07T23:59:59+08:00"}'
 ```
 
  4) 调用 Agent 进行分析，此处示例分析某位学生的表现
 ```
-curl -s http://localhost:8080/v1/admin/agent/task/run \
+curl -s http://localhost:8888/v1/admin/agent/task/run \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <TOKEN>' \
   -d '{ "task": "观察学号为<示例学号>的学生在 2025 年的训练情况，可以从比赛数据和做题数据中进行分析" }'
