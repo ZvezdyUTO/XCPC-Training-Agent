@@ -164,7 +164,7 @@ curl -s http://localhost:8080/v1/admin/op/training/sync \
   -d '{"students":[{"student_id":"示例学号"}],"from":"2026-03-01T00:00:00+08:00","to":"2026-03-07T23:59:59+08:00"}'
 ```
 
- 4) 调用 Agent 进行分析，此处示例分析某位学生的表现
+4. 调用 Agent 进行分析，此处示例分析某位学生的表现
 ```
 curl -s http://localhost:8080/v1/admin/agent/task/run \
   -H 'Content-Type: application/json' \
