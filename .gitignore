@@ -1,0 +1,23 @@
+# env files
+.env
+.env.*
+!.env.example
+
+# local editor / system files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# logs
+*.log
+
+# build outputs
+bin/
+dist/
+*.out
+
+.idea/
+__pycache__/
+*.pyc

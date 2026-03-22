@@ -58,17 +58,15 @@ func (h *AdminOperator) SyncTraining(ctx *gin.Context) {
 				StudentID: stu.StudentID,
 				Error:     err.Error(),
 			})
-			continue // ❗跳过，继续执行
+			continue
 		}
 	}
 
-	// 全部成功
 	if len(failed) == 0 {
 		httpx.Ok(ctx)
 		return
 	}
 
-	// 部分成功
 	httpx.OkWithData(ctx, gin.H{
 		"msg":        "partial success",
 		"failed_cnt": len(failed),

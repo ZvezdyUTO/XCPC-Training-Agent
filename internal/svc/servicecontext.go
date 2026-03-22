@@ -62,7 +62,7 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 	}
 
 	// 拼装 agent 工具
-	llmClient := llm.NewAliyunQwenClient("glm-4.7")
+	llmClient := llm.NewAliyunQwenClient("deepseek-chat")
 	TrainingSummaryTool := tools.NewTrainingSummaryTool(dailyModel)
 	ContestRatingSummaryTool := tools.NewContestRatingSummaryTool(contestModel)
 

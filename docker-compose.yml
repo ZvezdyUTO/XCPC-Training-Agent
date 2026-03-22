@@ -25,8 +25,8 @@ services:
 
   app:
     environment:
-      - DASHSCOPE_API_KEY=<Token>
-      - DASHSCOPE_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
+      - DASHSCOPE_API_KEY=<>
+      - DASHSCOPE_BASE_URL=https://chat.deepseek.com/
       - AGENT_TEST=1
     build:
       context: .
