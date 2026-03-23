@@ -37,8 +37,11 @@ type ServiceContext struct {
 	LoggingMid *middleware.LoggingMid
 
 	// AgentTools
-	TrainingSummaryTool      agent.Tool
-	ContestRatingSummaryTool agent.Tool
+	TrainingSummaryTool          agent.Tool
+	ContestRatingSummaryTool     agent.Tool
+	TrainingDayLeaderboardTool   agent.Tool
+	TrainingWeekLeaderboardTool  agent.Tool
+	TrainingMonthLeaderboardTool agent.Tool
 }
 
 func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, error) {
@@ -71,6 +74,9 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 	llmClient := llm.NewAliyunQwenClient(modelName)
 	TrainingSummaryTool := tools.NewTrainingSummaryTool(dailyModel)
 	ContestRatingSummaryTool := tools.NewContestRatingSummaryTool(contestModel)
+	TrainingDayLeaderboardTool := tools.NewTrainingDayLeaderboardTool(dailyModel, userModel)
+	TrainingWeekLeaderboardTool := tools.NewTrainingWeekLeaderboardTool(dailyModel, userModel)
+	TrainingMonthLeaderboardTool := tools.NewTrainingMonthLeaderboardTool(dailyModel, userModel)
 
 	res := &ServiceContext{
 		ctx:          ctx,
@@ -88,6 +94,9 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 		LLMClient:                llmClient,
 		TrainingSummaryTool:      TrainingSummaryTool,
 		ContestRatingSummaryTool: ContestRatingSummaryTool,
+		TrainingDayLeaderboardTool:   TrainingDayLeaderboardTool,
+		TrainingWeekLeaderboardTool:  TrainingWeekLeaderboardTool,
+		TrainingMonthLeaderboardTool: TrainingMonthLeaderboardTool,
 	}
 
 	return res, initServer(res)
