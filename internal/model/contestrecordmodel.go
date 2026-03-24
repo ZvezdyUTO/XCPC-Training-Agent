@@ -16,6 +16,8 @@ type (
 		Upsert(ctx context.Context, data *ContestRecord) error
 		// FindByStudent 查询某用户的全部比赛历史。
 		FindByStudent(ctx context.Context, studentID string) ([]*ContestRecord, error)
+		// FindByStudent 查询某比赛的用户排名
+		FindByContest(ctx context.Context, platform, contestID string) ([]*ContestRecord, error)
 		// FindRecent 查询某用户最近 N 天的比赛记录。
 		FindRecent(ctx context.Context, studentID string, days int) ([]*ContestRecord, error)
 		// Delete 删除某场比赛记录。
@@ -128,4 +130,17 @@ func (m *defaultContestRecord) DeleteRange(
 	}
 
 	return tx.Delete(&ContestRecord{}).Error
+}
+
+func (m *defaultContestRecord) FindByContest(
+	ctx context.Context,
+	platform, contestID string,
+) ([]*ContestRecord, error) {
+	var list []*ContestRecord
+	err := m.model().
+		WithContext(ctx).
+		Where("platform = ? AND contest_id = ?", platform, contestID).
+		Order("contest_rank ASC").
+		Find(&list).Error
+	return list, err
 }

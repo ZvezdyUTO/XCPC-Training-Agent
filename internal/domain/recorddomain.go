@@ -83,11 +83,11 @@ type DeleteTrainingByDateReq struct {
 type ContestRankingItem struct {
 	StudentID    string `json:"student_id"`
 	Name         string `json:"name"`
-	ContestRank  int64  `json:"contest_rank"`
-	OldRating    int64  `json:"old_rating"`
-	NewRating    int64  `json:"new_rating"`
-	RatingChange int64  `json:"rating_change"`
-	Performance  int64  `json:"performance"`
+	ContestRank  int    `json:"contest_rank"`
+	OldRating    int    `json:"old_rating"`
+	NewRating    int    `json:"new_rating"`
+	RatingChange int    `json:"rating_change"`
+	Performance  int    `json:"performance"`
 }
 
 type ContestRankingResult struct {

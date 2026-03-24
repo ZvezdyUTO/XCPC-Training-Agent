@@ -40,6 +40,7 @@ func (l *defaultAgentLogic) RunTask(
 	reg.Register(l.svcCtx.TrainingDayLeaderboardTool)
 	reg.Register(l.svcCtx.TrainingWeekLeaderboardTool)
 	reg.Register(l.svcCtx.TrainingMonthLeaderboardTool)
+	reg.Register(l.svcCtx.ContestRankingTool)
 
 	// 3️⃣ 创建 controller（任务级别）
 	ctrl := agent.NewController(
