@@ -4,10 +4,16 @@ FileBasePath: ./test_data
 
 # 如果是 docker 内运行，使用这个配置
 MySql:
+
   DataSource: "root:123456@tcp(127.0.0.1:3307)/aATAdb?charset=utf8mb4&parseTime=True&loc=Local"
     # 如果是本地 go run . 运行，使用这个配置
+
+
+
+
+
 #MySql:
-#  DataSource: "root:123456@tcp(127.0.0.1:3307)/aATAdb?charset=utf8mb4&parseTime=True&loc=Local"
+ # DataSource: "root:123456@tcp(127.0.0.1:3307)/aATAdb?charset=utf8mb4&parseTime=True&loc=Local"
 
 #Redis:
 #  Addr: "redis:6379"
