@@ -9,9 +9,7 @@ WORKDIR /app
 # 所以 Docker 本质上就是一个多层文件复用系统，每层叠加的只有变化
 # RUN 是构建阶段命令，而 CMD 是运行阶段默认命令
 COPY go.mod go.sum ./
-RUN go env -w GOPROXY=https://goproxy.cn,direct && \
-    go env -w GOSUMDB=sum.golang.google.cn && \
-    go mod download 
+RUN go mod download
 COPY . .
 
 # 运行编译出来的文件

@@ -25,9 +25,9 @@ services:
 
   app:
     environment:
-      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
-      - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL}
-      - LLM_MODEL=${LLM_MODEL}
+      - DASHSCOPE_API_KEY=<Token>
+      - DASHSCOPE_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
+      - AGENT_TEST=1
     build:
       context: .
       dockerfile: Dockerfile.dev

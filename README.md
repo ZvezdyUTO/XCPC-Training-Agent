@@ -26,7 +26,6 @@
 
 - 拓展 tool, skill
 - 可视化前端
-- 部署到校园内网
 
 ---
 
@@ -76,7 +75,7 @@ sql/
 
 ### 1. 配置 LLM 环境变量
 
-在启动服务之前，你需要准备好 LLM 的访问凭证。默认支持 **阿里云百炼 (DashScope)** 及其他兼容 OpenAI 接口协议的服务。
+在启动服务前，你需要准备好 LLM 的访问凭证。默认支持 **阿里云百炼 (DashScope)** 及其他兼容 OpenAI 接口协议的服务。
 
 请在 `docker-compose.yaml` 中填写你的配置：
 
@@ -165,7 +164,7 @@ curl -s http://localhost:8080/v1/admin/op/training/sync \
   -d '{"students":[{"student_id":"示例学号"}],"from":"2026-03-01T00:00:00+08:00","to":"2026-03-07T23:59:59+08:00"}'
 ```
 
-4. 调用 Agent 进行分析，此处示例分析某位学生的表现
+ 4) 调用 Agent 进行分析，此处示例分析某位学生的表现
 ```
 curl -s http://localhost:8080/v1/admin/agent/task/run \
   -H 'Content-Type: application/json' \
