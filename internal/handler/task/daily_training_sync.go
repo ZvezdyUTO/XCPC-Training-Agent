@@ -58,6 +58,5 @@ func (s *DailyTrainingSync) getData(ctx context.Context) error {
 	if err := s.training.SyncAllUsers(ctx); err != nil {
 		return err
 	}
-
 	return nil
 }

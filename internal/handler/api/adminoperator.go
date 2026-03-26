@@ -1,12 +1,12 @@
 package api
 
 import (
+	"aATA/internal/domain"
 	"aATA/internal/logic/student_data"
-	"fmt"
+	"aATA/internal/model"
 
 	"github.com/gin-gonic/gin"
 
-	"aATA/internal/domain"
 	"aATA/internal/svc"
 	"aATA/pkg/httpx"
 )
@@ -26,26 +26,20 @@ func NewAdminOperator(svcCtx *svc.ServiceContext, training student_data.Training
 func (h *AdminOperator) InitRegister(engine *gin.Engine) {
 	// RESTful 架构，用 URL 表示资源，用 HTTP 动词表示动作
 	g := engine.Group("v1/admin/op", h.svcCtx.JwtMid.Handler, h.svcCtx.AdminMid.Handler)
-	g.POST("/training/sync", h.SyncTraining)
-	g.POST("/training/sync/all", h.SyncAllTraining)
+	g.POST("/training/syncall", h.SyncAllTraining)
 }
 
 // SyncAllTraining 检查所有学生的 sync 状态，并自动决定全量或范围更新
 func (h *AdminOperator) SyncAllTraining(ctx *gin.Context) {
-	err := h.training.SyncAllUsers(ctx.Request.Context())
+	users, _, err := h.svcCtx.UsersModel.List(ctx.Request.Context(), &domain.UserListReq{})
 	if err != nil {
 		httpx.FailWithErr(ctx, err)
 		return
 	}
 
-	httpx.Ok(ctx)
-}
-
-func (h *AdminOperator) SyncTraining(ctx *gin.Context) {
-	var req domain.AdminSyncTrainingReq
-	if err := httpx.BindAndValidate(ctx, &req); err != nil {
-		httpx.FailWithErr(ctx, err)
-		return
+	type SuccessItem struct {
+		StudentID string `json:"student_id"`
+		Mode      string `json:"mode"` // full / range / skip
 	}
 
 	type FailedItem struct {
@@ -53,36 +47,46 @@ func (h *AdminOperator) SyncTraining(ctx *gin.Context) {
 		Error     string `json:"error"`
 	}
 
+	success := make([]SuccessItem, 0)
 	failed := make([]FailedItem, 0)
 
-	for _, stu := range req.Students {
+	for _, u := range users {
+		if u.IsSystem == model.IsSystemUser {
+			continue
+		}
+		if u.CFHandle == "" && u.ACHandle == "" {
+			continue
+		}
 
-		fmt.Println(stu.StudentID)
-		err := h.training.SyncRange(
-			ctx.Request.Context(),
-			stu.StudentID,
-			req.From,
-			req.To,
-		)
-
+		mode, err := h.training.SyncStudentWithMode(ctx.Request.Context(), u.Id)
 		if err != nil {
-			fmt.Println(err)
 			failed = append(failed, FailedItem{
-				StudentID: stu.StudentID,
+				StudentID: u.Id,
 				Error:     err.Error(),
 			})
 			continue
 		}
+
+		success = append(success, SuccessItem{
+			StudentID: u.Id,
+			Mode:      string(mode),
+		})
 	}
 
 	if len(failed) == 0 {
-		httpx.Ok(ctx)
+		httpx.OkWithData(ctx, gin.H{
+			"msg":         "success",
+			"success_cnt": len(success),
+			"success":     success,
+		})
 		return
 	}
 
 	httpx.OkWithData(ctx, gin.H{
-		"msg":        "partial success",
-		"failed_cnt": len(failed),
-		"failed":     failed,
+		"msg":         "partial success",
+		"success_cnt": len(success),
+		"success":     success,
+		"failed_cnt":  len(failed),
+		"failed":      failed,
 	})
 }
