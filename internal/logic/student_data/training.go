@@ -11,23 +11,26 @@ import (
 )
 
 type TrainingLogic interface {
-	SyncDay(ctx context.Context, studentID string, day time.Time) error
-	SyncAllUsersYesterday(ctx context.Context) error
-	SyncAllHistory(ctx context.Context, studentID string) error
 	SyncRange(ctx context.Context, studentID string, from, to time.Time) error
+	SyncAllHistory(ctx context.Context, studentID string) error
+
+	SyncAllUsers(ctx context.Context) error
+	SyncStudent(ctx context.Context, studentID string) error
 }
 type trainingLogic struct {
-	user    model.UsersModel
-	contest model.ContestRecordModel
-	daily   model.DailyTrainingStatsModel
-	crawler crawler.Crawler
-	loc     *time.Location
+	user      model.UsersModel
+	contest   model.ContestRecordModel
+	daily     model.DailyTrainingStatsModel
+	syncState model.StudentSyncStateModel
+	crawler   crawler.Crawler
+	loc       *time.Location
 }
 
 func NewTrainingLogic(
 	user model.UsersModel,
 	contest model.ContestRecordModel,
 	daily model.DailyTrainingStatsModel,
+	syncState model.StudentSyncStateModel,
 	crawler crawler.Crawler,
 	loc *time.Location,
 ) TrainingLogic {
@@ -35,32 +38,21 @@ func NewTrainingLogic(
 		loc = time.Local
 	}
 	return &trainingLogic{
-		user:    user,
-		contest: contest,
-		daily:   daily,
-		loc:     loc,
-		crawler: crawler,
+		user:      user,
+		contest:   contest,
+		daily:     daily,
+		syncState: syncState,
+		loc:       loc,
+		crawler:   crawler,
 	}
 }
 
-// SyncDay 同步某一天（日常任务）
-func (l *trainingLogic) SyncDay(
-	ctx context.Context,
-	studentID string,
-	day time.Time,
-) error {
-	from, to := dayRange(day, l.loc)
-	return l.SyncRange(ctx, studentID, from, to)
-}
-
-// SyncAllUsersYesterday 同步所有用户昨日的训练记录（管理员除外）
-func (l *trainingLogic) SyncAllUsersYesterday(ctx context.Context) error {
+// SyncAllUsers 同步所有普通用户的数据（自动判断全量初始化或范围补齐）
+func (l *trainingLogic) SyncAllUsers(ctx context.Context) error {
 	users, _, err := l.user.List(ctx, &domain.UserListReq{})
 	if err != nil {
 		return err
 	}
-
-	yesterday := time.Now().In(l.loc).AddDate(0, 0, -1)
 
 	for _, u := range users {
 		if u.IsSystem == model.IsSystemUser {
@@ -70,12 +62,13 @@ func (l *trainingLogic) SyncAllUsersYesterday(ctx context.Context) error {
 			continue
 		}
 
-		// 执行爬虫逻辑
-		if err := l.SyncDay(ctx, u.Id, yesterday); err != nil {
-			// 不中断，继续
+		// 每个学生按自己的 sync 状态决定如何同步
+		if err := l.SyncStudent(ctx, u.Id); err != nil {
+			// 单个失败不中断整体
 			continue
 		}
 	}
+
 	return nil
 }
 
@@ -88,6 +81,7 @@ func (l *trainingLogic) SyncAllHistory(
 	return l.SyncRange(ctx, studentID, from, to)
 }
 
+// SyncRange 按时间区间进行爬取
 func (l *trainingLogic) SyncRange(
 	ctx context.Context,
 	studentID string,
@@ -142,6 +136,7 @@ func (l *trainingLogic) SyncRange(
 	return nil
 }
 
+// getStudentHandle 获取学生 handle
 func (l *trainingLogic) getStudentHandle(ctx context.Context, studentID string) (string, string, error) {
 
 	if l.user == nil {
@@ -165,4 +160,72 @@ func (l *trainingLogic) getStudentHandle(ctx context.Context, studentID string) 
 	}
 
 	return u.CFHandle, u.ACHandle, nil
+}
+
+// SyncStudent 根据 sync 状态自动决定是全量同步还是范围同步
+func (l *trainingLogic) SyncStudent(ctx context.Context, studentID string) error {
+	if l.syncState == nil {
+		return fmt.Errorf("StudentSyncStateModel is not initialized")
+	}
+
+	yesterday := dateOnly(time.Now().In(l.loc).AddDate(0, 0, -1), l.loc)
+
+	state, err := l.syncState.FindByStudentID(ctx, studentID)
+	if err != nil && !errors.Is(err, model.ErrNotFound) {
+		return fmt.Errorf("find sync state failed: %w", err)
+	}
+
+	// 1. 未初始化：直接全量同步到昨天，成功后写 sync 表，完事退出
+	if errors.Is(err, model.ErrNotFound) || state == nil || state.IsFullyInitialized == 0 {
+		if err := l.SyncAllHistory(ctx, studentID); err != nil {
+			return fmt.Errorf("sync all history failed: %w", err)
+		}
+
+		if err := l.syncState.Upsert(ctx, &model.StudentSyncState{
+			StudentID:            studentID,
+			IsFullyInitialized:   1,
+			LatestSuccessfulDate: &yesterday,
+		}); err != nil {
+			return fmt.Errorf("upsert sync state after full sync failed: %w", err)
+		}
+
+		return nil
+	}
+
+	// 2. 已初始化：根据 latest_successful_date 计算缺口区间
+	if state.LatestSuccessfulDate == nil {
+		return fmt.Errorf("student %s sync state invalid: initialized but latest_successful_date is nil", studentID)
+	}
+
+	latest := *state.LatestSuccessfulDate
+	from := dateOnly(latest.AddDate(0, 0, 1), l.loc)
+	to := yesterday
+
+	// 没有缺口，不需要同步
+	if from.After(to) {
+		return nil
+	}
+
+	if err := l.SyncRange(ctx, studentID, from, to); err != nil {
+		return fmt.Errorf("sync range failed: %w", err)
+	}
+
+	// 3. 范围同步成功后，再推进 sync 表
+	if err := l.syncState.Upsert(ctx, &model.StudentSyncState{
+		StudentID:            studentID,
+		IsFullyInitialized:   1,
+		LatestSuccessfulDate: &to,
+	}); err != nil {
+		return fmt.Errorf("upsert sync state after range sync failed: %w", err)
+	}
+
+	return nil
+}
+
+func dateOnly(t time.Time, loc *time.Location) time.Time {
+	if loc == nil {
+		loc = time.Local
+	}
+	tt := t.In(loc)
+	return time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, loc)
 }

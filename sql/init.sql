@@ -100,3 +100,20 @@ CREATE TABLE contest_records
     INDEX         idx_contest_date (contest_date),
     INDEX         idx_platform (platform)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE student_sync_state
+(
+    student_id              VARCHAR(32) NOT NULL,
+    is_fully_initialized    TINYINT     NOT NULL DEFAULT 0,
+    latest_successful_date  DATE        NULL,
+
+    created_at              TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (student_id),
+
+    CONSTRAINT fk_sync_state_user
+        FOREIGN KEY (student_id)
+            REFERENCES users (id)
+            ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

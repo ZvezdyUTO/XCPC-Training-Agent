@@ -27,6 +27,18 @@ func (h *AdminOperator) InitRegister(engine *gin.Engine) {
 	// RESTful 架构，用 URL 表示资源，用 HTTP 动词表示动作
 	g := engine.Group("v1/admin/op", h.svcCtx.JwtMid.Handler, h.svcCtx.AdminMid.Handler)
 	g.POST("/training/sync", h.SyncTraining)
+	g.POST("/training/sync/all", h.SyncAllTraining)
+}
+
+// SyncAllTraining 检查所有学生的 sync 状态，并自动决定全量或范围更新
+func (h *AdminOperator) SyncAllTraining(ctx *gin.Context) {
+	err := h.training.SyncAllUsers(ctx.Request.Context())
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	httpx.Ok(ctx)
 }
 
 func (h *AdminOperator) SyncTraining(ctx *gin.Context) {

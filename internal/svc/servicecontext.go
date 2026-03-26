@@ -27,6 +27,7 @@ type ServiceContext struct {
 	UsersModel               model.UsersModel
 	ContestModel             model.ContestRecordModel
 	DailyModel               model.DailyTrainingStatsModel
+	StudentSyncStateModel    model.StudentSyncStateModel
 	Crawler                  crawler.Crawler
 	LLMClient                llm.Client
 	GetUserTrainingRangeTool agent.Tool
@@ -55,6 +56,7 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 	dailyModel := model.NewDailyTrainingStatsModel(db)
 	userModel := model.NewUsersModel(db)
 	contestModel := model.NewContestRecordModel(db)
+	studentSyncStateModel := model.NewStudentSyncStateModel(db)
 
 	jwtTool := jwt.NewJWT(
 		c.JWT.Secret,
@@ -81,11 +83,12 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 	ContestRankingTool := tools.NewContestRankingTool(contestModel, userModel)
 
 	res := &ServiceContext{
-		ctx:          ctx,
-		Config:       c,
-		UsersModel:   userModel,
-		ContestModel: contestModel,
-		DailyModel:   dailyModel,
+		ctx:                   ctx,
+		Config:                c,
+		UsersModel:            userModel,
+		ContestModel:          contestModel,
+		DailyModel:            dailyModel,
+		StudentSyncStateModel: studentSyncStateModel,
 
 		JWT:        jwtTool,
 		JwtMid:     middleware.NewJWTMid(jwtTool),

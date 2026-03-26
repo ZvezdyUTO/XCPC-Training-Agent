@@ -17,6 +17,7 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 			svc.UsersModel,
 			svc.ContestModel,
 			svc.DailyModel,
+			svc.StudentSyncStateModel,
 			svc.Crawler,
 			loc,
 		)

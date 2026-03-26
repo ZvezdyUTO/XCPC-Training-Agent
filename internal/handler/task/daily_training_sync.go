@@ -23,6 +23,7 @@ func NewDailyTrainingSync(svc *svc.ServiceContext, loc *time.Location) *DailyTra
 			svc.UsersModel,
 			svc.ContestModel,
 			svc.DailyModel,
+			svc.StudentSyncStateModel,
 			svc.Crawler,
 			loc,
 		),
@@ -54,8 +55,7 @@ func (s *DailyTrainingSync) Register(ctx context.Context) {
 func (s *DailyTrainingSync) Stop(ctx context.Context) {}
 
 func (s *DailyTrainingSync) getData(ctx context.Context) error {
-	// 先同步昨日训练数据
-	if err := s.training.SyncAllUsersYesterday(ctx); err != nil {
+	if err := s.training.SyncAllUsers(ctx); err != nil {
 		return err
 	}
 
