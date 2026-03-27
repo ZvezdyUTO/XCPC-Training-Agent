@@ -1,14 +1,10 @@
 /*
-定义整个 agent 系统的统一数据结构（非常关键，后面都用它）：
+定义整个 agent 系统的统一数据结构：
 
-AgentInput：mode/date/student_id
-AgentState：输入 + 已有工具结果 + reasoning trace + step count
-LLMAction：call_tool / finish
+AgentInput：任务输入
+AgentState：输入 + 已有工具结果 + step count
 LLMResponse：严格 JSON 协议
-FinalOutput：两种模式的输出 schema（coach_attention / student_diagnosis）
-ToolCall：tool_name + arguments
-
-这份文件就是“协议中心”。
+FinalOutput：Agent 最终输出
 */
 
 package agent
@@ -24,10 +20,9 @@ type ToolResult struct {
 }
 
 type AgentState struct {
-	Input        AgentInput
-	ToolResults  []ToolResult
-	ReasoningLog []string
-	Step         int
+	Input       AgentInput
+	ToolResults []ToolResult
+	Step        int
 }
 
 type FinalOutput struct {

@@ -5,8 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type AliyunQwenClient struct {
@@ -15,10 +18,23 @@ type AliyunQwenClient struct {
 	model   string
 }
 
+func (c *AliyunQwenClient) ModelName() string {
+	return c.model
+}
+
+type chatCompletionResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+	Error any `json:"error"`
+}
+
 func NewAliyunQwenClient(model string) *AliyunQwenClient {
 	return &AliyunQwenClient{
 		apiKey:  os.Getenv("DASHSCOPE_API_KEY"),
-		baseURL: os.Getenv("DASHSCOPE_BASE_URL"),
+		baseURL: normalizeChatCompletionsURL(os.Getenv("DASHSCOPE_BASE_URL")),
 		model:   model,
 	}
 }
@@ -37,10 +53,15 @@ func (c *AliyunQwenClient) Complete(ctx context.Context, prompt string) (string,
 		"messages": []map[string]string{
 			{
 				"role":    "system",
+				"content": "你是一个严格遵循指令的智能助手。",
+			},
+			{
+				"role":    "user",
 				"content": prompt,
 			},
 		},
 		"temperature": 0,
+		"stream":      false,
 	}
 
 	jsonBody, _ := json.Marshal(body)
@@ -48,7 +69,7 @@ func (c *AliyunQwenClient) Complete(ctx context.Context, prompt string) (string,
 	req, err := http.NewRequestWithContext(
 		ctx,
 		"POST",
-		c.baseURL+"/chat/completions",
+		c.baseURL,
 		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
@@ -67,21 +88,43 @@ func (c *AliyunQwenClient) Complete(ctx context.Context, prompt string) (string,
 	}
 	defer resp.Body.Close()
 
-	// 解析响应为弱类型 map
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return "", err
 	}
 
-	// 提取 choices
-	choices, ok := result["choices"].([]interface{})
-	if !ok || len(choices) == 0 {
-		return "", errors.New("invalid response format")
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", fmt.Errorf("llm request failed: status=%d body=%s", resp.StatusCode, string(respBody))
 	}
 
-	// 提取 message.content
-	message := choices[0].(map[string]interface{})["message"].(map[string]interface{})
-	content := message["content"].(string)
+	var result chatCompletionResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("decode llm response: %w", err)
+	}
+
+	if len(result.Choices) == 0 {
+		if result.Error != nil {
+			return "", fmt.Errorf("llm returned no choices: %v", result.Error)
+		}
+		return "", errors.New("llm returned no choices")
+	}
+
+	content := result.Choices[0].Message.Content
+	if content == "" {
+		return "", errors.New("llm returned empty message content")
+	}
 
 	return content, nil
+}
+
+func normalizeChatCompletionsURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	raw = strings.TrimRight(raw, "/")
+	if raw == "" {
+		return raw
+	}
+	if strings.HasSuffix(raw, "/chat/completions") {
+		return raw
+	}
+	return raw + "/chat/completions"
 }

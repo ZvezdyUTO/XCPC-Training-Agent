@@ -71,15 +71,16 @@ func (m *defaultContestRecord) Upsert(
 				{Name: "platform"},
 				{Name: "contest_id"},
 			},
-			DoUpdates: clause.AssignmentColumns([]string{
-				"contest_name",
-				"contest_date",
-				"contest_rank",
-				"old_rating",
-				"new_rating",
-				"rating_change",
-				"performance",
-				"created_at",
+			DoUpdates: clause.Assignments(map[string]any{
+				"contest_name":  data.ContestName,
+				"contest_date":  data.ContestDate,
+				"contest_rank":  data.ContestRank,
+				"old_rating":    data.OldRating,
+				"new_rating":    data.NewRating,
+				"rating_change": data.RatingChange,
+				"performance":   data.Performance,
+				"created_at":    data.CreatedAt,
+				"deleted_at":    nil,
 			}),
 		}).
 		Create(data).Error
@@ -110,6 +111,7 @@ func (m *defaultContestRecord) Delete(
 ) error {
 
 	return m.model().
+		Unscoped().
 		Where("student_id = ? AND platform = ? AND contest_id = ?",
 			studentID, platform, contestID).
 		Delete(&ContestRecord{}).Error
@@ -123,6 +125,7 @@ func (m *defaultContestRecord) DeleteRange(
 
 	tx := m.model().
 		WithContext(ctx).
+		Unscoped().
 		Where("contest_date BETWEEN ? AND ?", from, to)
 
 	if len(studentIDs) > 0 {

@@ -10,3 +10,7 @@ import "context"
 type Client interface {
 	Complete(ctx context.Context, prompt string) (string, error)
 }
+
+type Descriptor interface {
+	ModelName() string
+}
