@@ -8,6 +8,11 @@ RUN python3 -m venv /opt/venv
 
 # 把 venv 加入 PATH
 ENV PATH="/opt/venv/bin:$PATH"
+# 国内源
+# ENV GOPROXY=https://goproxy.cn,direct
+# ENV GOSUMDB=sum.golang.google.cn
+# ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_DEFAULT_TIMEOUT=120
 
 COPY go.mod go.sum ./
 RUN go mod download
