@@ -1,7 +1,6 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: aATA-mysql
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: aATAdb
@@ -10,7 +9,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -18,16 +17,14 @@ services:
       retries: 5
 
   app:
-    environment:
-      - MYSQL_ROOT_HOST=%
-      - DASHSCOPE_API_KEY=<Token>
-      - DASHSCOPE_BASE_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
-      - LLM_MODEL=glm-4.7
-      - AGENT_TEST=1
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: aATA-app
+    environment:
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-glm-4.7}
+      AGENT_TEST: ${AGENT_TEST:-1}
     ports:
       - "8888:8888"
     volumes:
@@ -35,7 +32,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-
     restart: always
 
 volumes:
