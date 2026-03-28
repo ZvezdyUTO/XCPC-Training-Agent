@@ -1,6 +1,6 @@
 ---
 paths:
-  - internal/llm/**
+  - internal/logic/agent/model/**
 ---
 修改 LLM 客户端时遵守：
 

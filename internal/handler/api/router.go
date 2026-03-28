@@ -2,6 +2,7 @@ package api
 
 import (
 	"aATA/internal/logic"
+	agentservice "aATA/internal/logic/agent/service"
 	"aATA/internal/logic/student_data"
 	"aATA/internal/svc"
 	"time"
@@ -21,7 +22,7 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 			svc.Crawler,
 			loc,
 		)
-		agentLogic = logic.NewAgentLogic(svc)
+		agentLogic = agentservice.New(svc)
 	)
 
 	// 实例化 Handler，将创建好的 Logic 实例注入

@@ -1,7 +1,7 @@
 package tools
 
 import (
-	"aATA/internal/logic/agent"
+	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/model"
 	"context"
 	"encoding/json"
@@ -28,9 +28,9 @@ func (t *TrainingDayLeaderboardTool) Description() string {
 	return "查询数据库内所有人在某一天的过题量排行榜"
 }
 
-func (t *TrainingDayLeaderboardTool) Schema() agent.ToolSchema {
-	return agent.ToolSchema{
-		Parameters: map[string]agent.Parameter{
+func (t *TrainingDayLeaderboardTool) Schema() tooling.ToolSchema {
+	return tooling.ToolSchema{
+		Parameters: map[string]tooling.Parameter{
 			"date": {
 				Type:        "string",
 				Description: "查询日期，格式 2006-01-02",

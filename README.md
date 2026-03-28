@@ -1,300 +1,113 @@
 # XCPC-Training-Agent
 
-一个专为 XCPC 集训队设计的智能化训练数据管理与分析平台。它不仅能自动化抓取 Codeforces / AtCoder 数据，更能通过内置的 AI Agent 像教练一样分析队员的训练走势。
+XCPC-Training-Agent 是一个面向集训队训练管理的后端服务，提供两项核心能力：
 
----
+- 同步 Codeforces / AtCoder 的训练与比赛数据
+- 基于 LLM 与本地工具输出结构化训练分析结果
 
-## 你能用它做什么
+## Features
 
-- **智能 Agent 分析系统**
-  - 事件循环控制：AI 不只是生成文本，而是通过观察 (Observation) -> 思考 (Thought) -> 行动 (Action) 的循环进行任务调度。
-  - 工具自动化调用：Agent 可自主决定何时调用数据库查询接口、统计函数或爬虫，完成复杂的横向/纵向对比分析。
+- 用户与管理员权限体系
+- 训练数据自动同步
+- 基于原生 `tools / tool_calls` 的 Agent 分析
+- Docker Compose 本地部署
 
-- **全自动数据同步**
-  - 多平台支持：统一抓取 Codeforces 与 AtCoder 的训练/比赛记录。
-  - T+1 自动任务：按天自动同步数据，支持管理员手动触发区间覆盖同步。
+## Tech Stack
 
-- **完善的权限体系**
-  - 基于 JWT 的鉴权机制，区分普通队员（查阅、改密）与管理员（调度爬虫、管理用户、调用 Agent）。
+- Go + Gin
+- GORM + MySQL
+- OpenAI-compatible LLM API
+- Python crawler
+- Docker Compose
 
-- **容器化一键部署**
-  - 基于 Docker Compose 编排，集成 MySQL、Redis 环境，支持 SQL 自动初始化。
+## Quick Start
 
----
+### 1. Configure environment
 
-## 未来希望增加的功能
+启动前请配置模型访问参数。当前 Agent 要求模型服务支持 OpenAI-compatible chat completions 与原生 `tool_calls`。
 
-- 拓展 tool, skill
-- 可视化前端
+推荐环境变量：
 
----
-
-## 技术栈
-
-* **Go + Gin**：提供 RESTful API
-* **LLM + Native Tool-Calling Agent**：基于 OpenAI-compatible `tools / tool_calls` 的事件循环智能分析系统
-* **GORM + MySQL**：数据持久化
-* **gocron**：定时任务调度
-* **Docker Compose**：服务编排与部署
-* **Python 爬虫**：独立子进程抓取 CF / AtCoder 数据，JSON 回传
-
----
-
-## 项目结构
-
-总体架构：**Handler → Logic → Model**
-
-```
-internal/
-├── handler/
-│   ├── api/              # HTTP 接口层
-│   └── task/             # 定时任务入口
-│
-├── logic/                # 业务核心层
-│   ├── user.go           # 用户逻辑（登录、注册、权限、批量建号）
-│   │
-│   ├── student_data/     # 训练数据导入相关逻辑
-│   │
-│   ├── agent_logic.go    # Agent 调度入口
-│   └── agent/            # Agent 框架实现
-│       ├── controller.go # 事件循环核心
-│       ├── registry.go   # 工具注册与调用
-│       ├── prompt.go     # Prompt 组装
-│       ├── types.go      # 协议定义
-│       └── tools/        # 具体分析工具（训练统计 / rating 统计）
-│
-├── model/                # 数据访问层
-├── crawler/              # Python 爬虫调用封装
-sql/
-└── init.sql              # 数据库初始化
-```
-
----
-
-## 快速开始（Docker）
-
-### 1. 配置 LLM 环境变量
-
-在启动服务前，你需要准备好 LLM 的访问凭证。Agent 现在要求模型服务支持 OpenAI-compatible chat completions 的原生 `tools / tool_calls` 协议。
-
-推荐填写：
-- `LLM_API_KEY`：秘钥
-- `LLM_BASE_URL`：`/chat/completions` 所在基址
-- `LLM_MODEL`：模型名称
+- `LLM_API_KEY`
+- `LLM_BASE_URL`
+- `LLM_MODEL`
 
 兼容旧配置：
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
 - `DASHSCOPE_API_KEY`
 - `DASHSCOPE_BASE_URL`
 
-优先级是 `LLM_*` / `OPENAI_*`，若未设置则回退到 `DASHSCOPE_*`。
+### 2. Start services
 
-### 2. 启动依赖与服务
-
-确保当前目录下存在 `sql/init.sql` 脚本，随后运行：
+确保仓库内存在 `sql/init.sql`，随后执行：
 
 ```bash
 docker compose up -d
 ```
 
-### 3. 服务编排参考 (`docker-compose.yaml`)
+默认服务地址：
 
-```yaml
-services:
-  mysql:
-    image: mysql:8.0
-    container_name: aATA-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: aATAdb
-      MYSQL_ROOT_HOST: "%"
-    ports:
-      - "3307:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+- API: `http://localhost:8888`
+- MySQL: `127.0.0.1:3307`
 
-  app:
-    environment:
-      - MYSQL_ROOT_HOST=%
-    # ----填写部分-----------------------------------
-      - LLM_API_KEY=<TOKEN>
-      - LLM_BASE_URL=<URL>
-      - LLM_MODEL=<NAME>
-    # ----------------------------------------------
-      - AGENT_TEST=1
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: aATA-app
-    ports:
-      - "8888:8888"
-    volumes:
-      - .:/app
-    depends_on:
-      mysql:
-        condition: service_healthy
+### 3. Default admin account
 
-    restart: always
+系统初始化后会创建默认管理员：
 
-volumes:
-  mysql_data:
-```
+- Username: `20001`
+- Password: `000000`
 
----
+## Common Usage
 
-## 调用示例                  
+### Login
 
-1. 登录 root，获取管理员 token
-```
+```bash
 curl -s http://localhost:8888/v1/user/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"20001","password":"000000"}'
 ```
 
-2. 批量创建用户（把 token 填到 Authorization）
-```
+### Create users
+
+```bash
 curl -s http://localhost:8888/v1/admin/users/create \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <TOKEN>' \
-  -d '{"users":[{"id":"示例学号","name":"示例姓名","password":"默认密码","cf_handle":"示例codeforcesID","ac_handle":"示例atCoderID"}]}'
+  -d '{"users":[{"id":"<示例学号>","name":"<示例姓名>","password":"<默认密码>","cf_handle":"<CF_HANDLE>","ac_handle":"<AC_HANDLE>"}]}'
 ```
 
-3. 自动同步全量数据
-```
+### Sync training data
+
+```bash
 curl -s http://localhost:8888/v1/admin/op/training/syncall \
   -H 'Authorization: Bearer <TOKEN>'
 ```
 
- 4) 调用 Agent 进行分析，此处示例分析某位学生的表现
-```
-curl -s http://localhost:8888/v1/admin/agent/task/run \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer <TOKEN>' \
-  -d '{ "task": "观察学号为<示例学号>的学生在 2025 年的训练情况，可以从比赛数据和做题数据中进行分析" }'
-```
+### Run agent
 
-5. 开启调试 trace，检查是否走了原生 tool-calling
 ```bash
 curl -s http://localhost:8888/v1/admin/agent/task/run \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <TOKEN>' \
   -d '{
-    "task": "观察学号为<示例学号>的学生在 2025 年的训练情况，可以从比赛数据和做题数据中进行分析",
-    "trace_mode": "debug"
+    "task": "分析学号为 <示例学号> 的学生近期训练情况",
+    "trace_mode": "summary"
   }'
 ```
 
-`trace_mode` 可选值：
-- `summary`：默认，返回摘要化 trace
-- `debug`：返回完整 trace 调试信息
+## Repository Layout
 
-在 `debug` 模式下，`trace.events` 里的 `model_called` 事件会包含请求中的 `tools` 数量和 `messages`，`model_returned` 事件会包含 provider 原始 `raw_response`。如果原始响应里出现了 `message.tool_calls`，就说明这次调用走的是 provider 原生 tool-calling，而不是 prompt 模拟。
-
-
-模型返回示例：
-```JSON
-{
-	"code": 200,
-	"data": {
-		"result": {
-			"confidence": 0.9,
-			"decision_type": "student_analysis",
-			"focus_students": [
-				"<示例学号>"
-			],
-			"metrics": {
-				"avg_rating": 1257,
-				"contest_count": 89,
-				"latest_rating": 1674,
-				"max_rating": 1856,
-				"primary_difficulty_range": "1600-1800",
-				"total_problems_solved": 376
-			},
-			"report": "学号 <示例学号> 的学生在 2025 年展现了活跃的训练参与度和显著的比赛成绩提升。\n\n【做题训练情况】\n全年累计完成 Codeforces 题目 376 道，训练量十分充足。难度分布呈现以下特点：\n- 中高难度（1600-1800）题目为主力，完成 125 道，占比约 33%\n- 基础题目（800-1100）保持了 92 道的训练量，占比约 24%\n- 进阶难度（1900-2300+）题目合计 90 道，显示出挑战高难度的意愿\n\n这种分布表明学生在巩固基础的同时，积极向高难度题目进阶，训练策略较为合理。\n\n【比赛表现分析】\n全年参与 89 场比赛，参赛频率很高。\n- 最新 Rating：1674（紫名边缘）\n- 历史最高：1856（2025 年 10 月 24 日达到）\n- 平均 Rating：1257\n\n比赛表现可以分为两个阶段：\n1. 上半年（1-4 月）：Rating 在 1370-1525 区间内大幅震荡，最高达到 1525，最低跌至 1370，稳定性较差\n2. 下半年（8-11 月）：进入稳定上升期，从 1667 稳步攀升至历史最高的 1856，虽然 11 月略有回落至 1674，但整体保持在较高水平\n\n特别值得注意的是，学生在 AtCoder ABC 系列比赛中表现强劲，Performance 多次突破 1000 分，最高达到 1619 分，说明在标准算法竞赛中的实际能力已经很强。\n\n【综合评价】\n该学生是一名勤奋且有潜力的竞赛选手：\n1. 训练态度端正，年训练量 376 题属于高水平\n2. 比赛经验丰富，89 场比赛的参与度体现了极强的竞技热情\n3. Rating 整体呈上升趋势，从年初的 1400+ 突破到 1800+，进步明显\n4. 需要改进的是比赛的稳定性，上半年波动较大\n\n【建议】\n1. 继续保持当前的训练强度，建议适当增加 2100+ 难度题目的比例，以突破当前瓶颈\n2. 在比赛中注意心态调整，减少大幅波动，争取稳定在 1700-1800 区间\n3. 加强赛后复盘，总结失分原因，提升抗干扰能力"
-		},
-		"task": "观察学号为 <示例学号> 的学生的 2025 年的训练情况，可以从比赛数据和做题数据中进行分析",
-		"trace": {
-			"run_id": "run_xxx",
-			"mode": "summary",
-			"started_at": "2026-03-28T10:00:00+08:00",
-			"finished_at": "2026-03-28T10:00:01+08:00",
-			"spans": [],
-			"events": []
-		}
-	},
-	"msg": "success"
-}
+```text
+internal/
+  handler/    HTTP 接口与定时任务入口
+  logic/      业务编排
+  model/      数据访问
+  crawler/    Python 爬虫调用
 ```
 
-## Agent 说明
+## Documentation
 
-当前 agent 使用的是 provider 原生 tool-calling，而不是 prompt 里约定 `{"action":"call_tool"}` 那种伪协议。运行时流程是：
-
-1. 后端把工具 schema 作为 `tools` 字段传给模型
-2. 模型在响应里返回结构化 `tool_calls`
-3. 后端执行工具后，把 `role=tool` 的结果回传给模型
-4. 模型最终输出分析结果 JSON
-
-如果你在代码里看到 `internal/llm/llm.go` 请求体包含 `tools` 和 `tool_choice`，同时 debug trace 的 `raw_response` 里有 `message.tool_calls`，那就是原生 tool-calling 链路。
-
-## Context Memory
-
-为了减少上下文污染和 token 消耗，agent 现在支持一套最小化 memory 机制：
-
-- `memory/project.md`：全局 project memory
-- `memory/rules/*.md`：按路径匹配的规则文件
-- `session snapshot`：每轮请求前注入的当前目标、确认事实、已完成事项、未完成事项和 artifacts 摘要
-- `tool result summarizer`：工具原始结果保留在后端，发回模型的是统一压缩后的轻量摘要
-
-规则文件支持一个很轻量的 front matter：
-
-```md
----
-paths:
-  - internal/logic/agent/**
-  - internal/llm/**
----
-这里写这组路径下的约束和偏好。
-```
-
-如果请求里带了路径，agent 会只加载匹配这些路径的规则，而不是把所有规则全量拼进 prompt。路径可以放在 `params.memory_paths`、`params.context_paths` 或 `params.paths`。
-
-示例：
-
-```json
-{
-  "task": "请分析 agent 核心实现",
-  "params": {
-    "memory_paths": [
-      "internal/logic/agent/controller.go",
-      "internal/llm/llm.go"
-    ]
-  },
-  "trace_mode": "debug"
-}
-```
-
-在 `debug` trace 里，可以看到：
-
-- `resolved_paths`
-- `applied_memories`
-- session snapshot 的统计信息
-
-这套设计的目标不是做一个很重的 memory 系统，而是把上下文压缩成：
-
-`system + project memory + matched path rules + session snapshot + recent messages + current task`
-
-同时，工具调用结果不再默认把原始大 JSON 全量回传模型，而是先经过全局摘要器压缩。当前默认策略会优先保留：
-
-- 小型标量字段
-- 身份字段，如 `student_id`、`contest_id`、`platform`
-- 数组名和数组长度
-- 大对象的 key 概览
-- 少量预览项
-
-这样做的目的，是先把工具结果从“全文长期驻留”改成“原始结果留在后端，模型只消费轻量摘要”。
+- `docs/architecture.md`
+- `docs/api.md`

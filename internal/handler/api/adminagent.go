@@ -1,7 +1,7 @@
 package api
 
 import (
-	"aATA/internal/logic"
+	agentservice "aATA/internal/logic/agent/service"
 
 	"github.com/gin-gonic/gin"
 
@@ -12,10 +12,10 @@ import (
 
 type AdminAgent struct {
 	svcCtx *svc.ServiceContext
-	agent  logic.AgentLogic
+	agent  agentservice.Service
 }
 
-func NewAdminAgent(svcCtx *svc.ServiceContext, agent logic.AgentLogic) *AdminAgent {
+func NewAdminAgent(svcCtx *svc.ServiceContext, agent agentservice.Service) *AdminAgent {
 	return &AdminAgent{svcCtx: svcCtx, agent: agent}
 }
 

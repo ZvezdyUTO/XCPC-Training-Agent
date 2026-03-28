@@ -1,7 +1,7 @@
 package tools
 
 import (
-	"aATA/internal/logic/agent"
+	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/model"
 	"context"
 	"encoding/json"
@@ -24,9 +24,9 @@ func (t *TrainingSummaryTool) Description() string {
 	return "查询某个学生在指定时间范围内的训练累计数据（按难度统计）"
 }
 
-func (t *TrainingSummaryTool) Schema() agent.ToolSchema {
-	return agent.ToolSchema{
-		Parameters: map[string]agent.Parameter{
+func (t *TrainingSummaryTool) Schema() tooling.ToolSchema {
+	return tooling.ToolSchema{
+		Parameters: map[string]tooling.Parameter{
 			"student_id": {
 				Type:        "string",
 				Description: "学生ID",

@@ -2,7 +2,7 @@ package tools
 
 import (
 	"aATA/internal/domain"
-	"aATA/internal/logic/agent"
+	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/model"
 	"context"
 	"encoding/json"
@@ -31,9 +31,9 @@ func (t *ContestRankingTool) Description() string {
 	return "查询某一场比赛中数据库内所有成员的排名情况"
 }
 
-func (t *ContestRankingTool) Schema() agent.ToolSchema {
-	return agent.ToolSchema{
-		Parameters: map[string]agent.Parameter{
+func (t *ContestRankingTool) Schema() tooling.ToolSchema {
+	return tooling.ToolSchema{
+		Parameters: map[string]tooling.Parameter{
 			"platform": {
 				Type:        "string",
 				Description: "比赛平台，可选 CF 或 AC",

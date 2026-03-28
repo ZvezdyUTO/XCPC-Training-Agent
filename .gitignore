@@ -1,25 +1,34 @@
-# env files
+# Environment files
 .env
 .env.*
+!.env.example
 
-
-# local editor / system files
-.vscode/
+# Editor files
 .idea/
+.vscode/
 *.swp
 *.swo
+
+# OS files
 .DS_Store
 
-# logs
+# Logs
 *.log
 
-# build outputs
+# Go build and test outputs
 bin/
 dist/
 *.out
+coverage.out
+coverage.html
 
-.idea/
+# Python caches and virtual environments
 __pycache__/
 *.pyc
-.idea/
-__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+AGENTS.md

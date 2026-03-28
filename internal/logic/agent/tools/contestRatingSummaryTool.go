@@ -1,7 +1,7 @@
 package tools
 
 import (
-	"aATA/internal/logic/agent"
+	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/model"
 	"context"
 	"encoding/json"
@@ -24,9 +24,9 @@ func (t *ContestRatingSummaryTool) Description() string {
 	return "查询某个学生的比赛 rating 摘要信息，默认返回压缩后的统计、关键比赛和有限趋势采样，避免返回完整逐场记录"
 }
 
-func (t *ContestRatingSummaryTool) Schema() agent.ToolSchema {
-	return agent.ToolSchema{
-		Parameters: map[string]agent.Parameter{
+func (t *ContestRatingSummaryTool) Schema() tooling.ToolSchema {
+	return tooling.ToolSchema{
+		Parameters: map[string]tooling.Parameter{
 			"student_id": {
 				Type:        "string",
 				Description: "学生ID",

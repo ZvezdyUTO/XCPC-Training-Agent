@@ -3,8 +3,8 @@ package svc
 import (
 	"aATA/internal/config"
 	"aATA/internal/crawler"
-	"aATA/internal/llm"
-	"aATA/internal/logic/agent"
+	agentmodel "aATA/internal/logic/agent/model"
+	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/logic/agent/tools"
 	"aATA/internal/middleware"
 	"aATA/internal/model"
@@ -29,8 +29,8 @@ type ServiceContext struct {
 	DailyModel               model.DailyTrainingStatsModel
 	StudentSyncStateModel    model.StudentSyncStateModel
 	Crawler                  crawler.Crawler
-	LLMClient                llm.Client
-	GetUserTrainingRangeTool agent.Tool
+	LLMClient                agentmodel.Client
+	GetUserTrainingRangeTool tooling.Tool
 
 	// Middleware
 	JwtMid     *middleware.JWTMid
@@ -38,12 +38,12 @@ type ServiceContext struct {
 	LoggingMid *middleware.LoggingMid
 
 	// AgentTools
-	TrainingSummaryTool          agent.Tool
-	ContestRatingSummaryTool     agent.Tool
-	TrainingDayLeaderboardTool   agent.Tool
-	TrainingWeekLeaderboardTool  agent.Tool
-	TrainingMonthLeaderboardTool agent.Tool
-	ContestRankingTool           agent.Tool
+	TrainingSummaryTool          tooling.Tool
+	ContestRatingSummaryTool     tooling.Tool
+	TrainingDayLeaderboardTool   tooling.Tool
+	TrainingWeekLeaderboardTool  tooling.Tool
+	TrainingMonthLeaderboardTool tooling.Tool
+	ContestRankingTool           tooling.Tool
 }
 
 func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, error) {
@@ -74,7 +74,7 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 		modelName = "deepseek-chat" // 默认值
 	}
 
-	llmClient := llm.NewOpenAICompatibleClient(modelName)
+	llmClient := agentmodel.NewOpenAICompatibleClient(modelName)
 	TrainingSummaryTool := tools.NewTrainingSummaryTool(dailyModel)
 	ContestRatingSummaryTool := tools.NewContestRatingSummaryTool(contestModel)
 	TrainingDayLeaderboardTool := tools.NewTrainingDayLeaderboardTool(dailyModel, userModel)
