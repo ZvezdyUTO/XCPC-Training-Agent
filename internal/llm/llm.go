@@ -73,34 +73,6 @@ type responseFunctionCall struct {
 	Arguments any    `json:"arguments"`
 }
 
-func (c *OpenAICompatibleClient) Complete(ctx context.Context, prompt string) (*Completion, error) {
-	temperature := 0.0
-	resp, err := c.Chat(ctx, ChatRequest{
-		Messages: []Message{
-			{
-				Role:    "system",
-				Content: "你是一个严格遵循指令的智能助手。",
-			},
-			{
-				Role:    "user",
-				Content: prompt,
-			},
-		},
-		Temperature: &temperature,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &Completion{
-		Content:      resp.Content,
-		FinishReason: resp.FinishReason,
-		LatencyMs:    resp.LatencyMs,
-		Usage:        resp.Usage,
-		RawResponse:  resp.RawResponse,
-	}, nil
-}
-
 func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*ChatCompletion, error) {
 	startedAt := time.Now()
 

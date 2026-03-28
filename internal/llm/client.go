@@ -3,7 +3,6 @@ package llm
 import "context"
 
 type Client interface {
-	Complete(ctx context.Context, prompt string) (*Completion, error)
 	Chat(ctx context.Context, req ChatRequest) (*ChatCompletion, error)
 }
 
@@ -44,14 +43,6 @@ type ToolCall struct {
 type FunctionCall struct {
 	Name      string `json:"name"`
 	Arguments string `json:"arguments,omitempty"`
-}
-
-type Completion struct {
-	Content      string          `json:"content"`
-	FinishReason string          `json:"finish_reason"`
-	LatencyMs    int64           `json:"latency_ms"`
-	Usage        CompletionUsage `json:"usage"`
-	RawResponse  string          `json:"raw_response"`
 }
 
 type ChatCompletion struct {

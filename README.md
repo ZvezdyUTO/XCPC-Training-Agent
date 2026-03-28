@@ -32,7 +32,7 @@
 ## 技术栈
 
 * **Go + Gin**：提供 RESTful API
-* **LLM + Tool-based Agent 框架**：基于事件循环的工具调用式智能分析系统
+* **LLM + Native Tool-Calling Agent**：基于 OpenAI-compatible `tools / tool_calls` 的事件循环智能分析系统
 * **GORM + MySQL**：数据持久化
 * **gocron**：定时任务调度
 * **Docker Compose**：服务编排与部署
@@ -75,12 +75,18 @@ sql/
 
 ### 1. 配置 LLM 环境变量
 
-在启动服务前，你需要准备好 LLM 的访问凭证。默认支持兼容 OpenAI 接口协议的服务。
+在启动服务前，你需要准备好 LLM 的访问凭证。Agent 现在要求模型服务支持 OpenAI-compatible chat completions 的原生 `tools / tool_calls` 协议。
 
-请在 `docker-compose.yaml` 中填写你的配置：
-- DASHSCOPE_API_KEY=秘钥
-- DASHSCOPE_BASE_URL=URL
-- LLM_MODEL=模型名称
+推荐填写：
+- `LLM_API_KEY`：秘钥
+- `LLM_BASE_URL`：`/chat/completions` 所在基址
+- `LLM_MODEL`：模型名称
+
+兼容旧配置：
+- `DASHSCOPE_API_KEY`
+- `DASHSCOPE_BASE_URL`
+
+优先级是 `LLM_*` / `OPENAI_*`，若未设置则回退到 `DASHSCOPE_*`。
 
 ### 2. 启动依赖与服务
 
@@ -116,8 +122,8 @@ services:
     environment:
       - MYSQL_ROOT_HOST=%
     # ----填写部分-----------------------------------
-      - DASHSCOPE_API_KEY=<TOKEN> // TOKEN
-      - DASHSCOPE_BASE_URL=<URL>
+      - LLM_API_KEY=<TOKEN>
+      - LLM_BASE_URL=<URL>
       - LLM_MODEL=<NAME>
     # ----------------------------------------------
       - AGENT_TEST=1
@@ -172,6 +178,23 @@ curl -s http://localhost:8888/v1/admin/agent/task/run \
   -d '{ "task": "观察学号为<示例学号>的学生在 2025 年的训练情况，可以从比赛数据和做题数据中进行分析" }'
 ```
 
+5. 开启调试 trace，检查是否走了原生 tool-calling
+```bash
+curl -s http://localhost:8888/v1/admin/agent/task/run \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -d '{
+    "task": "观察学号为<示例学号>的学生在 2025 年的训练情况，可以从比赛数据和做题数据中进行分析",
+    "trace_mode": "debug"
+  }'
+```
+
+`trace_mode` 可选值：
+- `summary`：默认，返回摘要化 trace
+- `debug`：返回完整 trace 调试信息
+
+在 `debug` 模式下，`trace.events` 里的 `model_called` 事件会包含请求中的 `tools` 数量和 `messages`，`model_returned` 事件会包含 provider 原始 `raw_response`。如果原始响应里出现了 `message.tool_calls`，就说明这次调用走的是 provider 原生 tool-calling，而不是 prompt 模拟。
+
 
 模型返回示例：
 ```JSON
@@ -195,12 +218,26 @@ curl -s http://localhost:8888/v1/admin/agent/task/run \
 			"report": "学号 <示例学号> 的学生在 2025 年展现了活跃的训练参与度和显著的比赛成绩提升。\n\n【做题训练情况】\n全年累计完成 Codeforces 题目 376 道，训练量十分充足。难度分布呈现以下特点：\n- 中高难度（1600-1800）题目为主力，完成 125 道，占比约 33%\n- 基础题目（800-1100）保持了 92 道的训练量，占比约 24%\n- 进阶难度（1900-2300+）题目合计 90 道，显示出挑战高难度的意愿\n\n这种分布表明学生在巩固基础的同时，积极向高难度题目进阶，训练策略较为合理。\n\n【比赛表现分析】\n全年参与 89 场比赛，参赛频率很高。\n- 最新 Rating：1674（紫名边缘）\n- 历史最高：1856（2025 年 10 月 24 日达到）\n- 平均 Rating：1257\n\n比赛表现可以分为两个阶段：\n1. 上半年（1-4 月）：Rating 在 1370-1525 区间内大幅震荡，最高达到 1525，最低跌至 1370，稳定性较差\n2. 下半年（8-11 月）：进入稳定上升期，从 1667 稳步攀升至历史最高的 1856，虽然 11 月略有回落至 1674，但整体保持在较高水平\n\n特别值得注意的是，学生在 AtCoder ABC 系列比赛中表现强劲，Performance 多次突破 1000 分，最高达到 1619 分，说明在标准算法竞赛中的实际能力已经很强。\n\n【综合评价】\n该学生是一名勤奋且有潜力的竞赛选手：\n1. 训练态度端正，年训练量 376 题属于高水平\n2. 比赛经验丰富，89 场比赛的参与度体现了极强的竞技热情\n3. Rating 整体呈上升趋势，从年初的 1400+ 突破到 1800+，进步明显\n4. 需要改进的是比赛的稳定性，上半年波动较大\n\n【建议】\n1. 继续保持当前的训练强度，建议适当增加 2100+ 难度题目的比例，以突破当前瓶颈\n2. 在比赛中注意心态调整，减少大幅波动，争取稳定在 1700-1800 区间\n3. 加强赛后复盘，总结失分原因，提升抗干扰能力"
 		},
 		"task": "观察学号为 <示例学号> 的学生的 2025 年的训练情况，可以从比赛数据和做题数据中进行分析",
-		"trace": [
-			"Step 0: 查询该学生2025年全年的训练累计数据（按难度统计）",
-			"Step 1: 需要获取该学生的比赛 rating 统计信息，结合已有的训练数据进行全面分析",
-			"Step 2: 已获取该学生 2025 年完整的训练数据和比赛 rating 数据，信息充足，可以进行综合分析并生成报告"
-		]
+		"trace": {
+			"run_id": "run_xxx",
+			"mode": "summary",
+			"started_at": "2026-03-28T10:00:00+08:00",
+			"finished_at": "2026-03-28T10:00:01+08:00",
+			"spans": [],
+			"events": []
+		}
 	},
 	"msg": "success"
 }
 ```
+
+## Agent 说明
+
+当前 agent 使用的是 provider 原生 tool-calling，而不是 prompt 里约定 `{"action":"call_tool"}` 那种伪协议。运行时流程是：
+
+1. 后端把工具 schema 作为 `tools` 字段传给模型
+2. 模型在响应里返回结构化 `tool_calls`
+3. 后端执行工具后，把 `role=tool` 的结果回传给模型
+4. 模型最终输出分析结果 JSON
+
+如果你在代码里看到 `internal/llm/llm.go` 请求体包含 `tools` 和 `tool_choice`，同时 debug trace 的 `raw_response` 里有 `message.tool_calls`，那就是原生 tool-calling 链路。
