@@ -20,9 +20,9 @@ services:
   app:
     environment:
       - MYSQL_ROOT_HOST=%
-      - DASHSCOPE_API_KEY=<TOKEN>
-      - DASHSCOPE_BASE_URL=<URL>
-      - LLM_MODEL=<NAME>
+      - DASHSCOPE_API_KEY=c32d9498add44564acf845539e6ce70d.MM00Sp0diNBSk89D
+      - DASHSCOPE_BASE_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
+      - LLM_MODEL=glm-4.7
       - AGENT_TEST=1
     build:
       context: .
