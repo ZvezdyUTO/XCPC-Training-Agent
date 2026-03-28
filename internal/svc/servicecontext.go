@@ -18,26 +18,32 @@ import (
 	"gorm.io/gorm"
 )
 
-type ServiceContext struct {
-	Config config.Config
-	ctx    context.Context
+// Models 收拢所有数据库模型依赖。
+// 采用嵌入方式是为了在 ServiceContext 上继续保持短字段访问。
+type Models struct {
+	UsersModel            model.UsersModel
+	ContestModel          model.ContestRecordModel
+	DailyModel            model.DailyTrainingStatsModel
+	StudentSyncStateModel model.StudentSyncStateModel
+}
 
-	// 基础设施
-	JWT                      *jwt.JWT
-	UsersModel               model.UsersModel
-	ContestModel             model.ContestRecordModel
-	DailyModel               model.DailyTrainingStatsModel
-	StudentSyncStateModel    model.StudentSyncStateModel
-	Crawler                  crawler.Crawler
-	LLMClient                agentmodel.Client
-	GetUserTrainingRangeTool tooling.Tool
+// Infra 收拢与业务无关的基础设施依赖。
+type Infra struct {
+	JWT     *jwt.JWT
+	Crawler crawler.Crawler
+}
 
-	// Middleware
+// MiddlewareSet 收拢 HTTP 中间件依赖。
+type MiddlewareSet struct {
 	JwtMid     *middleware.JWTMid
 	AdminMid   *middleware.AdminMid
 	LoggingMid *middleware.LoggingMid
+}
 
-	// AgentTools
+// AgentDeps 收拢 Agent 模块运行所需的依赖。
+type AgentDeps struct {
+	LLMClient agentmodel.Client
+
 	TrainingSummaryTool          tooling.Tool
 	ContestRatingSummaryTool     tooling.Tool
 	TrainingDayLeaderboardTool   tooling.Tool
@@ -46,66 +52,83 @@ type ServiceContext struct {
 	ContestRankingTool           tooling.Tool
 }
 
+// ServiceContext 是应用层依赖的轻量装配入口。
+// 这里按领域分组依赖，但通过嵌入保持原有访问方式不变。
+type ServiceContext struct {
+	Config config.Config
+	ctx    context.Context
+
+	Models
+	Infra
+	MiddlewareSet
+	AgentDeps
+}
+
 func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, error) {
-	db, err := gorm.Open(mysql.Open(c.MySql.DataSource), &gorm.Config{}) // 这就是进行组装了
+	db, err := gorm.Open(mysql.Open(c.MySql.DataSource), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	// 统一拼装 model
-	dailyModel := model.NewDailyTrainingStatsModel(db)
-	userModel := model.NewUsersModel(db)
-	contestModel := model.NewContestRecordModel(db)
-	studentSyncStateModel := model.NewStudentSyncStateModel(db)
-
-	jwtTool := jwt.NewJWT(
-		c.JWT.Secret,
-		c.JWT.Expire,
-	)
-
-	craw := &crawler.PythonCrawler{
-		ScriptPath: "./internal/crawler/crawler_cli.py",
-		PythonBin:  "python3",
-	}
-
-	// 拼装 agent 工具
-	modelName := os.Getenv("LLM_MODEL")
-	if modelName == "" {
-		modelName = "deepseek-chat" // 默认值
-	}
-
-	llmClient := agentmodel.NewOpenAICompatibleClient(modelName)
-	TrainingSummaryTool := tools.NewTrainingSummaryTool(dailyModel)
-	ContestRatingSummaryTool := tools.NewContestRatingSummaryTool(contestModel)
-	TrainingDayLeaderboardTool := tools.NewTrainingDayLeaderboardTool(dailyModel, userModel)
-	TrainingWeekLeaderboardTool := tools.NewTrainingWeekLeaderboardTool(dailyModel, userModel)
-	TrainingMonthLeaderboardTool := tools.NewTrainingMonthLeaderboardTool(dailyModel, userModel)
-	ContestRankingTool := tools.NewContestRankingTool(contestModel, userModel)
+	models := newModels(db)
+	infra := newInfra(c)
+	middlewareSet := newMiddlewareSet(infra.JWT)
+	agentDeps := newAgentDeps(models)
 
 	res := &ServiceContext{
-		ctx:                   ctx,
-		Config:                c,
-		UsersModel:            userModel,
-		ContestModel:          contestModel,
-		DailyModel:            dailyModel,
-		StudentSyncStateModel: studentSyncStateModel,
-
-		JWT:        jwtTool,
-		JwtMid:     middleware.NewJWTMid(jwtTool),
-		LoggingMid: middleware.NewLoggingMid(),
-		AdminMid:   middleware.NewAdminMid(),
-
-		Crawler:                      craw,
-		LLMClient:                    llmClient,
-		TrainingSummaryTool:          TrainingSummaryTool,
-		ContestRatingSummaryTool:     ContestRatingSummaryTool,
-		TrainingDayLeaderboardTool:   TrainingDayLeaderboardTool,
-		TrainingWeekLeaderboardTool:  TrainingWeekLeaderboardTool,
-		TrainingMonthLeaderboardTool: TrainingMonthLeaderboardTool,
-		ContestRankingTool:           ContestRankingTool,
+		ctx:           ctx,
+		Config:        c,
+		Models:        models,
+		Infra:         infra,
+		MiddlewareSet: middlewareSet,
+		AgentDeps:     agentDeps,
 	}
 
 	return res, initServer(res)
+}
+
+func newModels(db *gorm.DB) Models {
+	return Models{
+		UsersModel:            model.NewUsersModel(db),
+		ContestModel:          model.NewContestRecordModel(db),
+		DailyModel:            model.NewDailyTrainingStatsModel(db),
+		StudentSyncStateModel: model.NewStudentSyncStateModel(db),
+	}
+}
+
+func newInfra(c config.Config) Infra {
+	return Infra{
+		JWT: jwt.NewJWT(c.JWT.Secret, c.JWT.Expire),
+		Crawler: &crawler.PythonCrawler{
+			ScriptPath: "./internal/crawler/crawler_cli.py",
+			PythonBin:  "python3",
+		},
+	}
+}
+
+func newMiddlewareSet(jwtTool *jwt.JWT) MiddlewareSet {
+	return MiddlewareSet{
+		JwtMid:     middleware.NewJWTMid(jwtTool),
+		AdminMid:   middleware.NewAdminMid(),
+		LoggingMid: middleware.NewLoggingMid(),
+	}
+}
+
+func newAgentDeps(models Models) AgentDeps {
+	modelName := os.Getenv("LLM_MODEL")
+	if modelName == "" {
+		modelName = "deepseek-chat"
+	}
+
+	return AgentDeps{
+		LLMClient:                    agentmodel.NewOpenAICompatibleClient(modelName),
+		TrainingSummaryTool:          tools.NewTrainingSummaryTool(models.DailyModel),
+		ContestRatingSummaryTool:     tools.NewContestRatingSummaryTool(models.ContestModel),
+		TrainingDayLeaderboardTool:   tools.NewTrainingDayLeaderboardTool(models.DailyModel, models.UsersModel),
+		TrainingWeekLeaderboardTool:  tools.NewTrainingWeekLeaderboardTool(models.DailyModel, models.UsersModel),
+		TrainingMonthLeaderboardTool: tools.NewTrainingMonthLeaderboardTool(models.DailyModel, models.UsersModel),
+		ContestRankingTool:           tools.NewContestRankingTool(models.ContestModel, models.UsersModel),
+	}
 }
 
 func initServer(svc *ServiceContext) error {
