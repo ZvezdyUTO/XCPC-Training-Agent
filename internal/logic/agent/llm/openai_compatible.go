@@ -1,10 +1,10 @@
-package model
+package llm
 
 import (
+	"aATA/internal/app/apperr"
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,33 +13,20 @@ import (
 	"time"
 )
 
-// OpenAICompatibleClient 适配所有兼容 OpenAI Chat Completions 的模型服务。
+// OpenAICompatibleClient 负责与遵循 OpenAI Chat Completions 协议的模型服务交互。
 type OpenAICompatibleClient struct {
 	apiKey  string
 	baseURL string
 	model   string
 }
 
-// NewOpenAICompatibleClient 根据环境变量创建默认的 OpenAI-compatible 客户端。
+// NewOpenAICompatibleClient 根据当前统一约定的 OPENAI_* 环境变量创建客户端。
 func NewOpenAICompatibleClient(model string) *OpenAICompatibleClient {
 	return &OpenAICompatibleClient{
-		apiKey: firstNonEmpty(
-			os.Getenv("LLM_API_KEY"),
-			os.Getenv("OPENAI_API_KEY"),
-			os.Getenv("DASHSCOPE_API_KEY"),
-		),
-		baseURL: normalizeChatCompletionsURL(firstNonEmpty(
-			os.Getenv("LLM_BASE_URL"),
-			os.Getenv("OPENAI_BASE_URL"),
-			os.Getenv("DASHSCOPE_BASE_URL"),
-		)),
-		model: model,
+		apiKey:  strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
+		baseURL: strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
+		model:   model,
 	}
-}
-
-// NewAliyunQwenClient 为兼容旧调用方保留的构造函数别名。
-func NewAliyunQwenClient(model string) *OpenAICompatibleClient {
-	return NewOpenAICompatibleClient(model)
 }
 
 // ModelName 返回当前客户端配置的模型名称。
@@ -58,6 +45,15 @@ type chatCompletionResponse struct {
 		TotalTokens      int `json:"total_tokens"`
 	} `json:"usage"`
 	Error any `json:"error"`
+}
+
+// openAIErrorPayload 是 OpenAI Chat Completions 标准错误响应结构。
+type openAIErrorPayload struct {
+	Error *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    any    `json:"code"`
+	} `json:"error"`
 }
 
 type responseMessage struct {
@@ -82,7 +78,7 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 	startedAt := time.Now()
 
 	if c.apiKey == "" || c.baseURL == "" {
-		return nil, errors.New("缺少 LLM_API_KEY/OPENAI_API_KEY/DASHSCOPE_API_KEY 或 LLM_BASE_URL/OPENAI_BASE_URL/DASHSCOPE_BASE_URL 配置")
+		return nil, apperr.New(apperr.KindConfig, "openai_config_missing", "缺少 OPENAI_API_KEY 或 OPENAI_BASE_URL 配置", 500)
 	}
 
 	body := map[string]any{
@@ -93,13 +89,14 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 
 	if req.Temperature != nil {
 		body["temperature"] = *req.Temperature
-	} else {
-		body["temperature"] = 0
 	}
 
 	if len(req.Tools) > 0 {
 		body["tools"] = req.Tools
 		body["tool_choice"] = "auto"
+	}
+	if req.ResponseFormat != nil {
+		body["response_format"] = req.ResponseFormat
 	}
 
 	jsonBody, err := json.Marshal(body)
@@ -123,34 +120,46 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 	client := &http.Client{}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return nil, err
+		return nil, apperr.Wrap(
+			apperr.New(apperr.KindUpstream, "llm_request_failed", "LLM 请求失败", 502),
+			err,
+		)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, apperr.Wrap(
+			apperr.New(apperr.KindUpstream, "llm_response_read_failed", "读取 LLM 响应失败", 502),
+			err,
+		)
 	}
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("LLM 请求失败：状态码=%d，响应=%s", resp.StatusCode, string(respBody))
+		return nil, buildProviderError(resp.StatusCode, respBody)
 	}
 
 	var result chatCompletionResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("解析 LLM 响应失败：%w", err)
+		return nil, apperr.Wrap(
+			apperr.New(apperr.KindUpstream, "llm_response_invalid_json", "解析 LLM 响应失败", 502),
+			err,
+		)
 	}
 
 	if len(result.Choices) == 0 {
 		if result.Error != nil {
-			return nil, fmt.Errorf("LLM 未返回可用结果：%v", result.Error)
+			return nil, apperr.New(apperr.KindUpstream, "llm_no_choices", fmt.Sprintf("LLM 未返回可用结果：%v", result.Error), 502)
 		}
-		return nil, errors.New("LLM 未返回可用结果")
+		return nil, apperr.New(apperr.KindUpstream, "llm_no_choices", "LLM 未返回可用结果", 502)
 	}
 
 	message, err := normalizeMessage(result.Choices[0].Message)
 	if err != nil {
-		return nil, err
+		return nil, apperr.Wrap(
+			apperr.New(apperr.KindUpstream, "llm_response_invalid_shape", "LLM 响应格式不符合当前协议", 502),
+			err,
+		)
 	}
 
 	return &ChatCompletion{
@@ -169,6 +178,7 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 }
 
 // normalizeMessage 将 provider 原始消息格式统一成内部 Message 结构。
+// 这里按当前 OpenAI Chat Completions 协议做严格解析，异常形态直接报错。
 func normalizeMessage(msg responseMessage) (Message, error) {
 	content, err := normalizeContent(msg.Content)
 	if err != nil {
@@ -199,69 +209,65 @@ func normalizeMessage(msg responseMessage) (Message, error) {
 	}, nil
 }
 
-// normalizeContent 兼容不同 provider 对 content 字段的返回差异。
+// normalizeContent 只接受当前协议中的 string 或 null 内容。
 func normalizeContent(raw any) (string, error) {
 	switch v := raw.(type) {
 	case nil:
 		return "", nil
 	case string:
 		return v, nil
-	case []any:
-		var builder strings.Builder
-		for _, item := range v {
-			part, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			if text, _ := part["text"].(string); text != "" {
-				builder.WriteString(text)
-			}
-		}
-		return builder.String(), nil
 	default:
-		b, err := json.Marshal(v)
-		if err != nil {
-			return "", fmt.Errorf("解析消息 content 失败：%w", err)
-		}
-		return string(b), nil
+		return "", fmt.Errorf("解析消息 content 失败：期望 string 或 null，实际为 %T", raw)
 	}
 }
 
-// normalizeArguments 确保 tool call arguments 最终总是字符串形式的 JSON。
+// normalizeArguments 只接受当前协议中的 string 或 null 参数。
 func normalizeArguments(raw any) (string, error) {
 	switch v := raw.(type) {
 	case nil:
-		return "{}", nil
+		return "", fmt.Errorf("解析 tool arguments 失败：期望 string，实际为 null")
 	case string:
 		return v, nil
 	default:
-		b, err := json.Marshal(v)
-		if err != nil {
-			return "", fmt.Errorf("解析 tool arguments 失败：%w", err)
-		}
-		return string(b), nil
+		return "", fmt.Errorf("解析 tool arguments 失败：期望 string 或 null，实际为 %T", raw)
 	}
 }
 
-// normalizeChatCompletionsURL 把基础地址规范化到 /chat/completions 终点。
-func normalizeChatCompletionsURL(raw string) string {
-	raw = strings.TrimSpace(raw)
-	raw = strings.TrimRight(raw, "/")
-	if raw == "" {
-		return raw
-	}
-	if strings.HasSuffix(raw, "/chat/completions") {
-		return raw
-	}
-	return raw + "/chat/completions"
-}
+// buildProviderError 将 OpenAI 风格错误响应转换为统一错误对象。
+// 这里只区分“可直接返回给用户的 4xx 错误”和“上游/内部故障”两大类。
+func buildProviderError(statusCode int, respBody []byte) error {
+	var payload openAIErrorPayload
+	kind := apperr.KindUpstream
+	httpStatus := http.StatusBadGateway
+	code := "llm_upstream_error"
+	message := fmt.Sprintf("LLM 请求失败，状态码=%d", statusCode)
 
-// firstNonEmpty 返回第一个非空字符串，用于多套环境变量回退。
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
-			return value
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		kind = apperr.KindUser
+		httpStatus = statusCode
+		code = "llm_request_invalid"
+	}
+
+	if err := json.Unmarshal(respBody, &payload); err == nil && payload.Error != nil {
+		if providerCode := normalizeProviderCode(payload.Error.Code); providerCode != "" {
+			code = providerCode
+		}
+		if providerMessage := strings.TrimSpace(payload.Error.Message); providerMessage != "" {
+			message = providerMessage
 		}
 	}
-	return ""
+
+	return apperr.New(kind, code, message, httpStatus)
+}
+
+// normalizeProviderCode 将 provider 错误码统一转成字符串。
+func normalizeProviderCode(raw any) string {
+	switch v := raw.(type) {
+	case nil:
+		return ""
+	case string:
+		return strings.TrimSpace(v)
+	default:
+		return strings.TrimSpace(fmt.Sprint(v))
+	}
 }

@@ -1,7 +1,9 @@
 package httpx
 
 import (
+	"aATA/internal/app/apperr"
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,16 +36,18 @@ func SetErrorHandler(handler func(ctx *gin.Context, err error) (int, error)) {
 }
 
 type Response struct { // 统一响应结构
-	Code int         `json:"code"`
-	Data interface{} `json:"data"`
-	Msg  string      `json:"msg"`
+	Code    int         `json:"code"`
+	Data    interface{} `json:"data"`
+	Msg     string      `json:"msg"`
+	ErrCode string      `json:"err_code,omitempty"`
 }
 
-func Result(ctx *gin.Context, httpCode int, bizCode int, data interface{}, msg string) {
+func Result(ctx *gin.Context, httpCode int, bizCode int, data interface{}, msg string, errCode string) {
 	ctx.JSON(httpCode, &Response{
-		Code: bizCode,
-		Data: data,
-		Msg:  msg,
+		Code:    bizCode,
+		Data:    data,
+		Msg:     msg,
+		ErrCode: errCode,
 	})
 }
 
@@ -58,7 +62,7 @@ func OkWithData(ctx *gin.Context, data interface{}) {
 	if handler != nil {
 		data = handler(ctx, data)
 	}
-	Result(ctx, 200, SUCCESS, data, SUCCESSMSG)
+	Result(ctx, 200, SUCCESS, data, SUCCESSMSG, "")
 }
 
 func Fail(ctx *gin.Context) {
@@ -71,11 +75,19 @@ func FailWithErr(ctx *gin.Context, err error) {
 	httpCode := 500
 	bizCode := 50000
 	msg := "internal server error"
+	errCode := ""
 
 	if handler != nil {
 		httpCode, err = handler(ctx, err)
+	}
+
+	if appErr, ok := apperr.As(err); ok {
+		msg = appErr.Message
+		errCode = appErr.Code
+	} else if err != nil {
+		fmt.Println("[internal error]", err)
 		msg = err.Error()
 	}
 
-	Result(ctx, httpCode, bizCode, NULL, msg)
+	Result(ctx, httpCode, bizCode, NULL, msg, errCode)
 }

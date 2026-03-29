@@ -2,7 +2,7 @@ package observe
 
 import (
 	"aATA/internal/logic/agent"
-	agentmodel "aATA/internal/logic/agent/model"
+	agentllm "aATA/internal/logic/agent/llm"
 	"aATA/internal/logic/agent/tooling"
 )
 
@@ -17,8 +17,8 @@ type Sink interface {
 // Observer 是 runtime 向 observe 层发出的运行事件接口。
 type Observer interface {
 	RunStarted(input agent.Input, toolNames []string)
-	ModelStarted(step int, req agentmodel.ChatRequest)
-	ModelFinished(step int, completion *agentmodel.ChatCompletion, parseErr error)
+	ModelStarted(step int, req agentllm.ChatRequest)
+	ModelFinished(step int, completion *agentllm.ChatCompletion, parseErr error)
 	ToolStarted(step int, name string, args string, toolCallID string)
 	ToolFinished(step int, result tooling.CallResult, err error, latencyMs int64)
 	RunFinished(step int, output map[string]any)
@@ -27,7 +27,7 @@ type Observer interface {
 
 // Factory 负责为一次运行创建对应的 observer 实例。
 type Factory interface {
-	New(llmClient agentmodel.Client, input agent.Input, toolNames []string) Observer
+	New(llmClient agentllm.Client, input agent.Input, toolNames []string) Observer
 }
 
 // TraceResult 允许 observer 在运行结束后导出最终 trace。

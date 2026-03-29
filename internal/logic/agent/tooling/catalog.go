@@ -45,14 +45,12 @@ func (r *registry) Call(ctx context.Context, name string, raw json.RawMessage) (
 // DefaultToolbox 是当前默认的工具聚合实现。
 type DefaultToolbox struct {
 	registry *registry
-	summary  ToolSummarizer
 }
 
-// NewToolbox 创建一个带默认摘要器的工具箱。
+// NewToolbox 创建一个默认工具箱。
 func NewToolbox() *DefaultToolbox {
 	return &DefaultToolbox{
 		registry: newRegistry(),
-		summary:  NewDefaultToolSummarizer(),
 	}
 }
 

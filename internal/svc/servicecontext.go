@@ -3,7 +3,7 @@ package svc
 import (
 	"aATA/internal/config"
 	"aATA/internal/crawler"
-	agentmodel "aATA/internal/logic/agent/model"
+	agentllm "aATA/internal/logic/agent/llm"
 	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/logic/agent/tools"
 	"aATA/internal/middleware"
@@ -42,7 +42,7 @@ type MiddlewareSet struct {
 
 // AgentDeps 收拢 Agent 模块运行所需的依赖。
 type AgentDeps struct {
-	LLMClient agentmodel.Client
+	LLMClient agentllm.Client
 
 	TrainingSummaryTool          tooling.Tool
 	ContestRatingSummaryTool     tooling.Tool
@@ -121,7 +121,7 @@ func newAgentDeps(models Models) AgentDeps {
 	}
 
 	return AgentDeps{
-		LLMClient:                    agentmodel.NewOpenAICompatibleClient(modelName),
+		LLMClient:                    agentllm.NewOpenAICompatibleClient(modelName),
 		TrainingSummaryTool:          tools.NewTrainingSummaryTool(models.DailyModel),
 		ContestRatingSummaryTool:     tools.NewContestRatingSummaryTool(models.ContestModel),
 		TrainingDayLeaderboardTool:   tools.NewTrainingDayLeaderboardTool(models.DailyModel, models.UsersModel),

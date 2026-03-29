@@ -2,7 +2,7 @@ package observe
 
 import (
 	"aATA/internal/logic/agent"
-	agentmodel "aATA/internal/logic/agent/model"
+	agentllm "aATA/internal/logic/agent/llm"
 	"aATA/internal/logic/agent/tooling"
 	"encoding/json"
 	"fmt"
@@ -24,7 +24,7 @@ func NewTraceObserverFactory(trace Sink) TraceObserverFactory {
 }
 
 // New 为本次运行创建 observer，并捕获模型标识等稳定元信息。
-func (f TraceObserverFactory) New(llmClient agentmodel.Client, input agent.Input, toolNames []string) Observer {
+func (f TraceObserverFactory) New(llmClient agentllm.Client, input agent.Input, toolNames []string) Observer {
 	return &traceObserver{
 		trace:     f.trace,
 		modelName: modelName(llmClient),
@@ -35,7 +35,7 @@ func (f TraceObserverFactory) New(llmClient agentmodel.Client, input agent.Input
 type modelAttempt struct {
 	spanID  string
 	eventID string
-	req     agentmodel.ChatRequest
+	req     agentllm.ChatRequest
 }
 
 // toolAttempt 记录一次尚未闭合的工具调用尝试。
@@ -77,7 +77,7 @@ func (o *traceObserver) RunStarted(input agent.Input, toolNames []string) {
 }
 
 // ModelStarted 记录一次模型调用开始事件，并打开对应 span。
-func (o *traceObserver) ModelStarted(step int, req agentmodel.ChatRequest) {
+func (o *traceObserver) ModelStarted(step int, req agentllm.ChatRequest) {
 	spanID := o.trace.StartSpan(step, agent.SpanModelCall, o.lastSpanID, map[string]any{
 		"entity_type": "model",
 		"entity_name": o.modelName,
@@ -104,7 +104,7 @@ func (o *traceObserver) ModelStarted(step int, req agentmodel.ChatRequest) {
 }
 
 // ModelFinished 关闭模型调用 span，并把返回内容写入 trace。
-func (o *traceObserver) ModelFinished(step int, completion *agentmodel.ChatCompletion, parseErr error) {
+func (o *traceObserver) ModelFinished(step int, completion *agentllm.ChatCompletion, parseErr error) {
 	if o.modelAttempt == nil {
 		return
 	}
@@ -266,8 +266,8 @@ func (o *traceObserver) Result() agent.RunTrace {
 }
 
 // modelName 以可选方式从模型客户端中提取用于 trace 展示的模型名。
-func modelName(client agentmodel.Client) string {
-	descriptor, ok := client.(agentmodel.Descriptor)
+func modelName(client agentllm.Client) string {
+	descriptor, ok := client.(agentllm.Descriptor)
 	if !ok {
 		return "未知模型"
 	}
@@ -302,7 +302,7 @@ func buildToolResultSummary(result any) map[string]any {
 }
 
 // buildModelReturnSummary 生成一条可读性更好的模型返回摘要。
-func buildModelReturnSummary(resp *agentmodel.ChatCompletion, parseErr error) string {
+func buildModelReturnSummary(resp *agentllm.ChatCompletion, parseErr error) string {
 	if resp == nil {
 		return "模型返回为空"
 	}
@@ -319,7 +319,7 @@ func buildModelReturnSummary(resp *agentmodel.ChatCompletion, parseErr error) st
 }
 
 // buildRequestContextSize 粗略估算本轮请求上下文的字符规模。
-func buildRequestContextSize(req agentmodel.ChatRequest) int {
+func buildRequestContextSize(req agentllm.ChatRequest) int {
 	size := 0
 	for _, msg := range req.Messages {
 		size += len(msg.Content)

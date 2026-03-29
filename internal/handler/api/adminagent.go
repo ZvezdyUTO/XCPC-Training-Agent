@@ -1,6 +1,7 @@
 package api
 
 import (
+	"aATA/internal/logic/agent"
 	agentservice "aATA/internal/logic/agent/service"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +9,7 @@ import (
 	"aATA/internal/domain"
 	"aATA/internal/svc"
 	"aATA/pkg/httpx"
+	"strings"
 )
 
 type AdminAgent struct {
@@ -37,10 +39,25 @@ func (h *AdminAgent) RunTask(ctx *gin.Context) {
 		return
 	}
 
-	httpx.OkWithData(ctx, gin.H{
+	body := gin.H{
 		"task":        req.Task,
 		"result":      res,
 		"token_usage": trace.TokenUsage,
-		"trace":       trace,
-	})
+	}
+	if shouldReturnTrace(req.TraceMode) {
+		body["trace"] = trace
+	}
+
+	httpx.OkWithData(ctx, body)
+}
+
+// shouldReturnTrace 控制是否向 HTTP 调用方返回完整 trace。
+// 默认不返回，只有显式请求 summary/debug 时才返回。
+func shouldReturnTrace(raw string) bool {
+	switch agent.Mode(strings.ToLower(strings.TrimSpace(raw))) {
+	case agent.ModeSummary, agent.ModeDebug:
+		return true
+	default:
+		return false
+	}
 }

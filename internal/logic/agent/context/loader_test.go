@@ -22,7 +22,7 @@ func TestLoader_Load(t *testing.T) {
 		t.Fatalf("write ruleA: %v", err)
 	}
 
-	ruleB := "---\npaths:\n  - internal/logic/agent/model/**\n---\nllm rule"
+	ruleB := "---\npaths:\n  - internal/logic/agent/llm/**\n---\nllm rule"
 	if err := os.WriteFile(filepath.Join(rulesDir, "model.md"), []byte(ruleB), 0o644); err != nil {
 		t.Fatalf("write ruleB: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestMatchPattern(t *testing.T) {
 	}{
 		{pattern: "internal/logic/agent/**", value: "internal/logic/agent/controller.go", ok: true},
 		{pattern: "internal/*/agent/**", value: "internal/logic/agent/controller.go", ok: true},
-		{pattern: "internal/logic/agent/model/**", value: "internal/logic/agent/controller.go", ok: false},
+		{pattern: "internal/logic/agent/llm/**", value: "internal/logic/agent/controller.go", ok: false},
 	}
 
 	for _, tc := range tests {

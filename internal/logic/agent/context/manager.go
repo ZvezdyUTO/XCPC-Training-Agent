@@ -2,12 +2,12 @@ package context
 
 import (
 	"aATA/internal/logic/agent"
-	agentmodel "aATA/internal/logic/agent/model"
+	agentllm "aATA/internal/logic/agent/llm"
 	stdctx "context"
 )
 
 // DefaultManager 是当前默认的上下文实现：
-// 从磁盘加载 memory，初始化 snapshot，并按运行进度组装模型输入消息。
+// 从磁盘加载 memory，初始化运行状态，并在每轮调用前生成模型消息。
 type DefaultManager struct {
 	loader *Loader
 }
@@ -19,39 +19,42 @@ func NewManager(memoryDir string) *DefaultManager {
 	}
 }
 
-// Open 解析本次任务的 memory，并初始化基础消息与 session snapshot。
+// Open 解析本次任务的 memory，并初始化本次运行的上下文状态。
 func (m *DefaultManager) Open(_ stdctx.Context, input agent.Input) (*State, error) {
-	resolvedPaths := input.MemoryPaths()
-	bundle, err := m.loader.Load(resolvedPaths)
+	bundle, err := m.loader.Load(input.MemoryPaths())
 	if err != nil {
 		return nil, err
 	}
 
 	return &State{
-		BaseMessages:    buildBaseMessages(input, bundle),
-		Snapshot:        newSessionSnapshot(input),
-		ResolvedPaths:   resolvedPaths,
-		AppliedMemories: appliedMemoryNames(bundle),
+		Snapshot:     newSessionSnapshot(input),
+		ToolResults:  []ToolResultSummary{},
+		baseMessages: buildBaseMessages(input, bundle), // 构造基础消息
 	}, nil
 }
 
-// Messages 生成本轮模型调用所需的完整消息列表。
-func (m *DefaultManager) Messages(state *State, conversation []agentmodel.Message) []agentmodel.Message {
+// BuildMessages 根据当前状态和最近会话生成下一轮模型调用消息。
+func (m *DefaultManager) BuildMessages(state *State, conversation []agentllm.Message) []agentllm.Message {
 	if state == nil {
 		return nil
 	}
-	snapshot, _ := state.Snapshot.(*sessionSnapshot)
-	return buildRequestMessages(state.BaseMessages, snapshot, conversation)
+
+	out := make([]agentllm.Message, 0, len(state.baseMessages)+1+recentConversationLimit)
+	out = append(out, state.baseMessages[:len(state.baseMessages)-1]...) // 稳定 system 消息
+	out = append(out, agentllm.Message{                                  // 当前运行状态消息
+		Role:    "system",
+		Content: buildContextStateMessage(state),
+	})
+	out = append(out, state.baseMessages[len(state.baseMessages)-1]) // 当前任务输入
+	out = append(out, recentConversation(conversation)...)           // 最近会话历史
+	return out
 }
 
-// RecordTool 将工具调用结果写回 snapshot，供后续轮次上下文使用。
-func (m *DefaultManager) RecordTool(state *State, toolName string, ok bool) {
+// ApplyToolResult 将一次工具调用结果写回上下文状态，供后续轮次推理使用。
+func (m *DefaultManager) ApplyToolResult(state *State, patch ToolResultPatch) {
 	if state == nil {
 		return
 	}
-	snapshot, _ := state.Snapshot.(*sessionSnapshot)
-	if snapshot == nil {
-		return
-	}
-	snapshot.recordToolResult(toolName, ok)
+	state.ToolResults = appendToolResultSummary(state.ToolResults, patch)
+	applyToolResultToSnapshot(&state.Snapshot, patch)
 }

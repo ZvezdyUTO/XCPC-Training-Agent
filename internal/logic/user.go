@@ -1,7 +1,7 @@
 package logic
 
 import (
-	"aATA/internal/errno"
+	"aATA/internal/app/apperr"
 	"aATA/internal/model"
 	"aATA/pkg/logx"
 	"context"
@@ -58,7 +58,7 @@ func (l *user) Login(ctx context.Context, req *domain.LoginReq) (resp *domain.Lo
 			"stage":    "password_check",
 			"username": req.Username,
 		})
-		return nil, errno.ErrPasswordInvalid
+		return nil, apperr.ErrPasswordInvalid
 	}
 
 	logx.Infos(ctx, "user", "login_success", logx.Fields{
@@ -84,12 +84,12 @@ func (l *user) Register(ctx context.Context, req *domain.RegisterReq) (*domain.R
 		}
 	}
 	if userEntity != nil {
-		return nil, errno.ErrUserAlreadyExists
+		return nil, apperr.ErrUserAlreadyExists
 	}
 
 	// 检查两次密码是否正确
 	if req.Password != req.Password2 {
-		return nil, errno.ErrPasswordMismatch
+		return nil, apperr.ErrPasswordMismatch
 	}
 
 	// 设置新用户信息，并且插入，若有报错则记录
@@ -239,15 +239,15 @@ func (l *user) UpPassword(ctx context.Context, uid int64, req *domain.UpPassword
 			"stage": "password_check",
 			"uid":   uid,
 		})
-		return errno.ErrPasswordInvalid
+		return apperr.ErrPasswordInvalid
 	}
 
 	// 更改新密码
 	if req.NewPwd == "" {
-		return errno.ErrPasswordEmpty
+		return apperr.ErrPasswordEmpty
 	}
 	if req.NewPwd == req.OldPwd {
-		return errno.ErrPasswordSame
+		return apperr.ErrPasswordSame
 	}
 
 	newHash, err := encrypt.GenPasswordHash([]byte(req.NewPwd))
@@ -263,7 +263,7 @@ func (l *user) UpPassword(ctx context.Context, uid int64, req *domain.UpPassword
 func (l *user) DeleteSelf(ctx context.Context, uid int64) error {
 	err := l.delete(ctx, uid)
 	if err != nil {
-		if errors.Is(err, errno.ErrUserNotFound) {
+		if errors.Is(err, apperr.ErrUserNotFound) {
 			return err
 		}
 		logx.Errors(ctx, "user", "delete_self_failed", logx.Fields{
@@ -283,7 +283,7 @@ func (l *user) DeleteSelf(ctx context.Context, uid int64) error {
 func (l *user) AdminDelete(ctx context.Context, adminID, targetUID int64) error {
 	err := l.delete(ctx, targetUID)
 	if err != nil {
-		if errors.Is(err, errno.ErrUserNotFound) {
+		if errors.Is(err, apperr.ErrUserNotFound) {
 			return err
 		}
 
@@ -311,7 +311,7 @@ func (l *user) delete(ctx context.Context, uid int64) error {
 	}
 
 	if userEntity == nil {
-		return errno.ErrUserNotFound
+		return apperr.ErrUserNotFound
 	}
 
 	if err := l.usersModel.Delete(ctx, uid); err != nil {

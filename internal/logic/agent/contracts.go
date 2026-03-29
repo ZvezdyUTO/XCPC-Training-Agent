@@ -65,6 +65,8 @@ func (in Input) MemoryPaths() []string {
 type Mode string
 
 const (
+	// ModeNone 表示不向调用方返回 trace，但内部仍可保留最小运行摘要。
+	ModeNone Mode = "none"
 	// ModeSummary 只保留适合接口返回和日常排障的摘要信息。
 	ModeSummary Mode = "summary"
 	// ModeDebug 记录更多原始 payload，用于深度调试模型与工具链路。
