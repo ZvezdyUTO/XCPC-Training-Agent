@@ -25,6 +25,7 @@ CREATE TABLE daily_training_stats
 
     -- Codeforces 当日新增
     cf_new_total     INT         NOT NULL DEFAULT 0,
+    cf_new_undefined INT         NOT NULL DEFAULT 0,
     cf_new_800       INT         NOT NULL DEFAULT 0,
     cf_new_900       INT         NOT NULL DEFAULT 0,
     cf_new_1000      INT         NOT NULL DEFAULT 0,
@@ -49,6 +50,7 @@ CREATE TABLE daily_training_stats
 
     -- AtCoder 当日新增
     ac_new_total     INT         NOT NULL DEFAULT 0,
+    ac_new_undefined INT         NOT NULL DEFAULT 0,
     ac_new_0_399     INT         NOT NULL DEFAULT 0,
     ac_new_400_799   INT         NOT NULL DEFAULT 0,
     ac_new_800_1199  INT         NOT NULL DEFAULT 0,

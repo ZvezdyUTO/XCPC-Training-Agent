@@ -70,6 +70,13 @@ export interface SyncAllTrainingPayload {
   }>;
 }
 
+/** SyncOneTrainingPayload 表示单个学生训练同步接口返回体。 */
+export interface SyncOneTrainingPayload {
+  msg: string;
+  student_id: string;
+  mode: string;
+}
+
 /** SyncStateItem 表示同步状态表中的单条记录。 */
 export interface SyncStateItem {
   student_id: string;
@@ -134,6 +141,75 @@ export interface ContestRankingPayload {
   contest_date: string;
   count: number;
   items: ContestRankingItem[];
+}
+
+/** TrainingSummaryPayload 表示某学生在指定时间段内的训练累计结果。 */
+export interface TrainingSummaryPayload {
+  student_id: string;
+  from: string;
+  to: string;
+  cf_total: number;
+  cf_distribution: Record<string, number>;
+  ac_total?: number;
+  ac_distribution?: Record<string, number>;
+  training_value?: {
+    scoring_version: string;
+    solved_total: number;
+    score: number;
+    volume_score: number;
+    difficulty_score: number;
+    challenge_score: number;
+    undefined_total: number;
+    undefined_ratio: number;
+    cf_rating: TrainingLeaderboardRatingProfile;
+    ac_rating: TrainingLeaderboardRatingProfile;
+  };
+}
+
+/** TrainingLeaderboardRatingProfile 表示某个平台的当前分、峰值和能力参考线。 */
+export interface TrainingLeaderboardRatingProfile {
+  current: number | null;
+  peak: number | null;
+  ability_anchor: number | null;
+}
+
+/** TrainingLeaderboardPlatformScore 表示单个平台上的训练贡献拆解。 */
+export interface TrainingLeaderboardPlatformScore {
+  solved_total: number;
+  known_total: number;
+  undefined_total: number;
+  score: number;
+  volume_score: number;
+  difficulty_score: number;
+  challenge_score: number;
+}
+
+/** TrainingLeaderboardItem 表示排行榜中的单个学生结果。 */
+export interface TrainingLeaderboardItem {
+  rank: number;
+  student_id: string;
+  student_name: string;
+  solved_total: number;
+  score: number;
+  volume_score: number;
+  difficulty_score: number;
+  challenge_score: number;
+  undefined_total: number;
+  undefined_ratio: number;
+  cf_rating: TrainingLeaderboardRatingProfile;
+  ac_rating: TrainingLeaderboardRatingProfile;
+  cf: TrainingLeaderboardPlatformScore;
+  ac: TrainingLeaderboardPlatformScore;
+}
+
+/** TrainingLeaderboardPayload 表示训练价值排行榜查询结果。 */
+export interface TrainingLeaderboardPayload {
+  scoring_version: string;
+  from: string;
+  to: string;
+  top_n: number;
+  count: number;
+  items: TrainingLeaderboardItem[];
 }
 
 /** ImportPreviewRow 表示学生导入预览中的单行解析结果。 */

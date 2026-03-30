@@ -1,8 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
 import { type AgentTraceMode, useAgentRuns } from "../features/agent/AgentRunContext";
-import { useAuth } from "../features/auth/AuthContext";
-import { api } from "../shared/api";
-import type { ContestRankingPayload } from "../shared/types";
 
 function formatUnknown(value: unknown): string {
   if (value === null || value === undefined || value === "") {
@@ -42,17 +39,11 @@ function getTraceLabel(item: Record<string, unknown>, primaryKey: string, fallba
 
 /** AgentPage 提供自然语言提问、结果展示与 trace 查看入口。 */
 export function AgentPage() {
-  const { user } = useAuth();
   const { runs, startRun } = useAgentRuns();
   const [task, setTask] = useState("分析学号为 230000001 的学生近期训练情况");
   const [traceMode, setTraceMode] = useState<AgentTraceMode>("summary");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [rankingPlatform, setRankingPlatform] = useState("CF");
-  const [rankingContestID, setRankingContestID] = useState("");
-  const [rankingLoading, setRankingLoading] = useState(false);
-  const [rankingError, setRankingError] = useState("");
-  const [rankingResult, setRankingResult] = useState<ContestRankingPayload | null>(null);
 
   const latestRun = useMemo(() => runs[0], [runs]);
   const latestResult = latestRun?.result?.result;
@@ -82,30 +73,6 @@ export function AgentPage() {
       setError(submitError instanceof Error ? submitError.message : "运行失败");
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleRankingQuery(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!user) {
-      setRankingError("未登录");
-      return;
-    }
-    if (rankingContestID.trim() === "") {
-      setRankingError("比赛 ID 不能为空");
-      return;
-    }
-
-    setRankingLoading(true);
-    setRankingError("");
-    try {
-      const payload = await api.getContestRanking(user.token, rankingPlatform, rankingContestID.trim());
-      setRankingResult(payload);
-    } catch (queryError) {
-      setRankingResult(null);
-      setRankingError(queryError instanceof Error ? queryError.message : "查询失败");
-    } finally {
-      setRankingLoading(false);
     }
   }
 
@@ -151,89 +118,6 @@ export function AgentPage() {
       </section>
 
       <section className="agent-content-stack">
-        <article className="panel">
-          <div className="panel-title">比赛排名查询</div>
-          <form className="agent-form" onSubmit={handleRankingQuery}>
-            <div className="agent-form-row">
-              <label className="field agent-select-field">
-                <span>平台</span>
-                <select className="agent-select" value={rankingPlatform} onChange={(event) => setRankingPlatform(event.target.value)}>
-                  <option value="CF">CF</option>
-                  <option value="AC">AC</option>
-                </select>
-              </label>
-
-              <label className="field agent-task-field">
-                <span>比赛 ID</span>
-                <input
-                  className="agent-inline-input"
-                  placeholder="例如 2050"
-                  value={rankingContestID}
-                  onChange={(event) => setRankingContestID(event.target.value)}
-                />
-              </label>
-
-              <button className="secondary-button agent-submit-button" disabled={rankingLoading} type="submit">
-                {rankingLoading ? "查询中..." : "查询比赛排名"}
-              </button>
-            </div>
-
-            {rankingError ? <div className="notice notice-error">{rankingError}</div> : null}
-          </form>
-
-          {rankingResult ? (
-            <div className="agent-section">
-              <div className="agent-trace-grid">
-                <div className="agent-meta-item">
-                  <span>contest_name</span>
-                  <strong>{formatUnknown(rankingResult.contest_name)}</strong>
-                </div>
-                <div className="agent-meta-item">
-                  <span>contest_date</span>
-                  <strong>{formatUnknown(rankingResult.contest_date)}</strong>
-                </div>
-                <div className="agent-meta-item">
-                  <span>platform</span>
-                  <strong>{rankingResult.platform}</strong>
-                </div>
-                <div className="agent-meta-item">
-                  <span>count</span>
-                  <strong>{rankingResult.count}</strong>
-                </div>
-              </div>
-
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>排名</th>
-                      <th>学号</th>
-                      <th>姓名</th>
-                      <th>旧分</th>
-                      <th>新分</th>
-                      <th>变化</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingResult.items.map((item) => (
-                      <tr key={`${item.student_id}-${item.platform}-${item.contest_id}`}>
-                        <td>{item.rank}</td>
-                        <td>{item.student_id}</td>
-                        <td>{item.student_name || "-"}</td>
-                        <td>{item.old_rating}</td>
-                        <td>{item.new_rating}</td>
-                        <td>{item.rating_change}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div className="empty-state">输入平台和比赛 ID 后，可以直接查询这场比赛在数据库内的队内排名。</div>
-          )}
-        </article>
-
         <article className="panel">
           <div className="panel-title">分析结果</div>
           {latestRun?.result ? (

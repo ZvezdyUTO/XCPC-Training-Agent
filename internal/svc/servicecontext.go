@@ -3,6 +3,7 @@ package svc
 import (
 	"aATA/internal/config"
 	"aATA/internal/crawler"
+	applogic "aATA/internal/logic"
 	agentllm "aATA/internal/logic/agent/llm"
 	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/logic/agent/tools"
@@ -45,10 +46,8 @@ type AgentDeps struct {
 	LLMClient agentllm.Client
 
 	TrainingSummaryTool          tooling.Tool
-	ContestRatingSummaryTool     tooling.Tool
-	TrainingDayLeaderboardTool   tooling.Tool
-	TrainingWeekLeaderboardTool  tooling.Tool
-	TrainingMonthLeaderboardTool tooling.Tool
+	StudentContestRecordsTool    tooling.Tool
+	TrainingValueLeaderboardTool tooling.Tool
 	ContestRankingTool           tooling.Tool
 }
 
@@ -119,14 +118,17 @@ func newAgentDeps(models Models) AgentDeps {
 	if modelName == "" {
 		modelName = "deepseek-chat"
 	}
+	leaderboardLogic := applogic.NewTrainingLeaderboard(
+		models.UsersModel,
+		models.DailyModel,
+		models.ContestModel,
+	)
 
 	return AgentDeps{
 		LLMClient:                    agentllm.NewOpenAICompatibleClient(modelName),
-		TrainingSummaryTool:          tools.NewTrainingSummaryTool(models.DailyModel),
-		ContestRatingSummaryTool:     tools.NewContestRatingSummaryTool(models.ContestModel),
-		TrainingDayLeaderboardTool:   tools.NewTrainingDayLeaderboardTool(models.DailyModel, models.UsersModel),
-		TrainingWeekLeaderboardTool:  tools.NewTrainingWeekLeaderboardTool(models.DailyModel, models.UsersModel),
-		TrainingMonthLeaderboardTool: tools.NewTrainingMonthLeaderboardTool(models.DailyModel, models.UsersModel),
+		TrainingSummaryTool:          tools.NewTrainingSummaryTool(models.DailyModel, models.ContestModel),
+		StudentContestRecordsTool:    tools.NewStudentContestRecordsTool(models.ContestModel),
+		TrainingValueLeaderboardTool: tools.NewTrainingValueLeaderboardTool(leaderboardLogic),
 		ContestRankingTool:           tools.NewContestRankingTool(models.ContestModel, models.UsersModel),
 	}
 }

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 	"os/exec"
 	"time"
 )
@@ -44,7 +44,15 @@ func (p *PythonCrawler) FetchRange(
 	from time.Time,
 	to time.Time,
 ) (*FetchResponse, error) {
-	fmt.Println("调度爬虫？")
+	// 每次实际调度 Python 爬虫前记录一次明确日志，便于排查长耗时同步任务。
+	log.Printf(
+		"[info] crawler.fetch_range.start student_id=%s cf_handle=%s ac_handle=%s from=%s to=%s",
+		studentID,
+		cfHandle,
+		acHandle,
+		from.Format("2006-01-02"),
+		to.Format("2006-01-02"),
+	)
 
 	cmd := exec.CommandContext(
 		ctx,
@@ -66,6 +74,9 @@ func (p *PythonCrawler) FetchRange(
 	if err := json.Unmarshal(output, &resp); err != nil {
 		return nil, err
 	}
+
+	// 成功日志只保留学号，避免重复输出无关细节。
+	log.Printf("[info] crawler.fetch_range.success student_id=%s", studentID)
 
 	return &resp, nil
 }

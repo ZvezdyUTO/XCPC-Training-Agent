@@ -24,8 +24,10 @@ class DailyTrainingStats:
 
     # CF
     cf_new_total: int
+    cf_new_undefined: int
     cf_new: Dict[int, int]  # rating -> count
 
     # AC
     ac_new_total: int
+    ac_new_undefined: int
     ac_new_range: Dict[str, int]  # "0-399" etc

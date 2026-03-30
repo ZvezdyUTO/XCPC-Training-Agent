@@ -72,6 +72,14 @@ select {
   letter-spacing: 0.04em;
 }
 
+.brand-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
 .brand-subtitle {
   margin-top: 8px;
   font-size: 0.92rem;
@@ -151,6 +159,23 @@ select {
   align-items: start;
 }
 
+.students-layout {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: start;
+}
+
+.students-main-column {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
+.students-side-column {
+  align-self: start;
+}
+
 .stats-grid {
   display: grid;
   gap: 20px;
@@ -225,6 +250,7 @@ textarea {
 
 .primary-button,
 .secondary-button,
+.danger-button,
 .ghost-button {
   border: none;
   border-radius: 14px;
@@ -244,6 +270,11 @@ textarea {
   color: var(--primary);
 }
 
+.danger-button {
+  background: rgba(188, 63, 74, 0.12);
+  color: var(--danger);
+}
+
 .ghost-button {
   background: transparent;
   color: var(--muted);
@@ -252,6 +283,7 @@ textarea {
 
 .primary-button:hover,
 .secondary-button:hover,
+.danger-button:hover,
 .ghost-button:hover {
   transform: translateY(-1px);
 }
@@ -331,6 +363,35 @@ textarea {
   background: rgba(24, 76, 159, 0.04);
   color: var(--muted);
   font-weight: 600;
+}
+
+.table-row-danger td {
+  background: rgba(188, 63, 74, 0.14);
+}
+
+.students-side-column .data-table th:nth-child(1),
+.students-side-column .data-table td:nth-child(1),
+.students-side-column .data-table th:nth-child(2),
+.students-side-column .data-table td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.row-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.row-action-button {
+  padding: 8px 12px;
+  min-width: 88px;
+}
+
+.row-action-hint {
+  color: var(--muted);
+  font-size: 0.84rem;
+  word-break: break-word;
 }
 
 .login-page {
@@ -489,6 +550,51 @@ textarea {
   gap: 16px;
   grid-template-columns: 160px minmax(0, 1fr) 180px;
   align-items: end;
+}
+
+.query-form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+
+.autocomplete-wrap {
+  position: relative;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 40px rgba(16, 35, 63, 0.12);
+  z-index: 20;
+}
+
+.autocomplete-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.autocomplete-item:hover {
+  background: rgba(24, 76, 159, 0.08);
 }
 
 .agent-select-field {
@@ -698,6 +804,7 @@ textarea {
 }
 
 @media (max-width: 1120px) {
+  .students-layout,
   .page-grid.two-columns,
   .stats-grid,
   .login-page {
@@ -742,6 +849,7 @@ textarea {
   .agent-metrics-grid,
   .agent-trace-grid,
   .agent-form-row,
+  .query-form-grid,
   .trace-payload-grid {
     grid-template-columns: 1fr;
   }

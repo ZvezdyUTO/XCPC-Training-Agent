@@ -1,6 +1,7 @@
 package tools
 
 import (
+	applogic "aATA/internal/logic"
 	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/model"
 	"context"
@@ -8,12 +9,23 @@ import (
 	"time"
 )
 
+// TrainingSummaryTool 负责查询单个学生区间训练累计，并返回统一训练价值评分拆解。
+// 它只读取已落库的训练统计和比赛记录，不触发抓取、补数或额外兜底。
 type TrainingSummaryTool struct {
-	daily model.DailyTrainingStatsModel
+	daily   model.DailyTrainingStatsModel
+	contest model.ContestRecordModel
 }
 
-func NewTrainingSummaryTool(daily model.DailyTrainingStatsModel) *TrainingSummaryTool {
-	return &TrainingSummaryTool{daily: daily}
+// NewTrainingSummaryTool 创建单人训练查询工具。
+// 该工具复用排行榜同一套评分公式，保证模型查询和手动查询口径一致。
+func NewTrainingSummaryTool(
+	daily model.DailyTrainingStatsModel,
+	contest model.ContestRecordModel,
+) *TrainingSummaryTool {
+	return &TrainingSummaryTool{
+		daily:   daily,
+		contest: contest,
+	}
 }
 
 func (t *TrainingSummaryTool) Name() string {
@@ -68,24 +80,22 @@ func (t *TrainingSummaryTool) Call(ctx context.Context, input json.RawMessage) (
 	if err != nil {
 		return nil, err
 	}
-
-	dist := map[string]int{
-		"800_1100":  res.CFNew800 + res.CFNew900 + res.CFNew1000 + res.CFNew1100,
-		"1200_1300": res.CFNew1200 + res.CFNew1300,
-		"1400_1500": res.CFNew1400 + res.CFNew1500,
-		"1600_1800": res.CFNew1600 + res.CFNew1700 + res.CFNew1800,
-		"1900_2000": res.CFNew1900 + res.CFNew2000,
-		"2100_2200": res.CFNew2100 + res.CFNew2200,
-		"2300_plus": res.CFNew2300 + res.CFNew2400 +
-			res.CFNew2500 + res.CFNew2600 +
-			res.CFNew2700 + res.CFNew2800Plus,
+	records, err := t.contest.FindByStudent(ctx, args.StudentID)
+	if err != nil {
+		return nil, err
 	}
+
+	cfDist, acDist := applogic.BuildTrainingDistributions(res)
+	trainingValue := applogic.BuildTrainingValueSummary(res, records)
 
 	return map[string]any{
 		"student_id":      args.StudentID,
 		"from":            args.From,
 		"to":              args.To,
 		"cf_total":        res.CFNewTotal,
-		"cf_distribution": dist,
+		"cf_distribution": cfDist,
+		"ac_total":        res.ACNewTotal,
+		"ac_distribution": acDist,
+		"training_value":  trainingValue,
 	}, nil
 }

@@ -2,8 +2,11 @@ package api
 
 import (
 	"aATA/internal/domain"
+	applogic "aATA/internal/logic"
 	"aATA/internal/logic/student_data"
 	"aATA/internal/model"
+	"errors"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -12,14 +15,20 @@ import (
 )
 
 type AdminOperator struct {
-	svcCtx   *svc.ServiceContext
-	training student_data.TrainingLogic
+	svcCtx      *svc.ServiceContext
+	training    student_data.TrainingLogic
+	leaderboard applogic.TrainingLeaderboard
 }
 
-func NewAdminOperator(svcCtx *svc.ServiceContext, training student_data.TrainingLogic) *AdminOperator {
+func NewAdminOperator(
+	svcCtx *svc.ServiceContext,
+	training student_data.TrainingLogic,
+	leaderboard applogic.TrainingLeaderboard,
+) *AdminOperator {
 	return &AdminOperator{
-		svcCtx:   svcCtx,
-		training: training,
+		svcCtx:      svcCtx,
+		training:    training,
+		leaderboard: leaderboard,
 	}
 }
 
@@ -27,7 +36,10 @@ func (h *AdminOperator) InitRegister(engine *gin.Engine) {
 	// RESTful 架构，用 URL 表示资源，用 HTTP 动词表示动作
 	g := engine.Group("v1/admin/op", h.svcCtx.JwtMid.Handler, h.svcCtx.AdminMid.Handler)
 	g.POST("/training/syncall", h.SyncAllTraining)
+	g.POST("/training/syncone", h.SyncOneTraining)
 	g.GET("/training/syncstate/list", h.ListTrainingSyncState)
+	g.GET("/training/summary", h.GetTrainingSummaryRange)
+	g.GET("/training/leaderboard", h.GetTrainingLeaderboard)
 	g.GET("/contest/ranking", h.GetContestRanking)
 }
 
@@ -93,6 +105,38 @@ func (h *AdminOperator) SyncAllTraining(ctx *gin.Context) {
 	})
 }
 
+// SyncOneTraining 触发单个学生的训练同步，并返回本次实际采用的同步模式。
+// 该接口复用现有训练同步逻辑，不额外增加批量或重试语义。
+func (h *AdminOperator) SyncOneTraining(ctx *gin.Context) {
+	var req domain.AdminSyncOneTrainingReq
+	if err := httpx.BindAndValidate(ctx, &req); err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	user, err := h.svcCtx.UsersModel.FindByID(req.StudentID)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+	if user.CFHandle == "" && user.ACHandle == "" {
+		httpx.FailWithErr(ctx, errors.New("student has no cf/ac handle"))
+		return
+	}
+
+	mode, err := h.training.SyncStudentWithMode(ctx.Request.Context(), req.StudentID)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	httpx.OkWithData(ctx, gin.H{
+		"msg":        "success",
+		"student_id": req.StudentID,
+		"mode":       string(mode),
+	})
+}
+
 // ListTrainingSyncState 返回同步状态表中的全部记录。
 // 这里只暴露当前已落库的状态快照，便于前端查看初始化情况与最近成功日期。
 func (h *AdminOperator) ListTrainingSyncState(ctx *gin.Context) {
@@ -106,6 +150,74 @@ func (h *AdminOperator) ListTrainingSyncState(ctx *gin.Context) {
 		"count": len(list),
 		"list":  list,
 	})
+}
+
+// GetTrainingSummaryRange 直接查询某个学生在指定时间段内的训练累计数据。
+// 该接口复用训练统计表，不调用模型，也不触发补抓取。
+func (h *AdminOperator) GetTrainingSummaryRange(ctx *gin.Context) {
+	var req struct {
+		StudentID string `form:"student_id" binding:"required"`
+		From      string `form:"from" binding:"required"`
+		To        string `form:"to" binding:"required"`
+	}
+	if err := httpx.BindAndValidate(ctx, &req); err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	fromTime, err := time.Parse("2006-01-02", req.From)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+	toTime, err := time.Parse("2006-01-02", req.To)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	res, err := h.svcCtx.DailyModel.SumRange(ctx.Request.Context(), req.StudentID, fromTime, toTime)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+	records, err := h.svcCtx.ContestModel.FindByStudent(ctx.Request.Context(), req.StudentID)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	dist, acDist := applogic.BuildTrainingDistributions(res)
+	trainingValue := applogic.BuildTrainingValueSummary(res, records)
+
+	httpx.OkWithData(ctx, gin.H{
+		"student_id":      req.StudentID,
+		"from":            req.From,
+		"to":              req.To,
+		"cf_total":        res.CFNewTotal,
+		"cf_distribution": dist,
+		"ac_total":        res.ACNewTotal,
+		"ac_distribution": acDist,
+		"training_value":  trainingValue,
+	})
+}
+
+// GetTrainingLeaderboard 返回指定时间区间内的训练价值排行榜。
+// 该接口只读取已落库数据，不会触发补抓取或二次推断。
+func (h *AdminOperator) GetTrainingLeaderboard(ctx *gin.Context) {
+	var req domain.TrainingLeaderboardReq
+	if err := httpx.BindAndValidate(ctx, &req); err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	resp, err := h.leaderboard.Query(ctx.Request.Context(), &req)
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	httpx.OkWithData(ctx, resp)
 }
 
 // GetContestRanking 直接查询数据库中某场比赛的队内排名。

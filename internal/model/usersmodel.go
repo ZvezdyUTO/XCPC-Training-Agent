@@ -15,6 +15,8 @@ type (
 		List(ctx context.Context, req *domain.UserListReq) ([]*Users, int64, error)
 		Update(ctx context.Context, data *Users) error
 		Delete(ctx context.Context, id int64) error
+		// DeleteByID 按学号硬删除用户，并依赖数据库级联删除其训练、比赛和同步状态数据。
+		DeleteByID(ctx context.Context, id string) error
 		FindByID(id string) (*Users, error)
 	}
 
@@ -75,6 +77,10 @@ func (m *defaultUsers) Update(ctx context.Context, data *Users) error {
 
 func (m *defaultUsers) Delete(ctx context.Context, id int64) error {
 	return m.db.Delete(&Users{}, "id = ?", id).Error
+}
+
+func (m *defaultUsers) DeleteByID(ctx context.Context, id string) error {
+	return m.db.WithContext(ctx).Unscoped().Delete(&Users{}, "id = ?", id).Error
 }
 
 func (m *defaultUsers) FindByID(id string) (*Users, error) {

@@ -28,7 +28,7 @@ type User interface {
 	// DeleteSelf 用户注销自身账号
 	DeleteSelf(ctx context.Context, uid int64) error
 	// AdminDelete 管理员注销用户账号
-	AdminDelete(ctx context.Context, adminID, targetUID int64) error
+	AdminDelete(ctx context.Context, adminID int64, targetID string) error
 
 	// UpPassword 更新密码
 	UpPassword(ctx context.Context, uid int64, req *domain.UpPasswordReq) (err error)
@@ -280,8 +280,21 @@ func (l *user) DeleteSelf(ctx context.Context, uid int64) error {
 	return nil
 }
 
-func (l *user) AdminDelete(ctx context.Context, adminID, targetUID int64) error {
-	err := l.delete(ctx, targetUID)
+func (l *user) AdminDelete(ctx context.Context, adminID int64, targetID string) error {
+	// 管理员删除按学号做硬删除，数据库外键负责联动清理训练、比赛和同步状态数据。
+	targetUser, err := l.usersModel.FindByID(targetID)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return apperr.ErrUserNotFound
+		}
+		return fmt.Errorf("find user by id failed: %w", err)
+	}
+
+	if targetUser.IsSystem == model.IsSystemUser {
+		return errors.New("不能删除系统用户")
+	}
+
+	err = l.usersModel.DeleteByID(ctx, targetID)
 	if err != nil {
 		if errors.Is(err, apperr.ErrUserNotFound) {
 			return err
@@ -290,7 +303,7 @@ func (l *user) AdminDelete(ctx context.Context, adminID, targetUID int64) error 
 		logx.Errors(ctx, "admin", "admin_delete_failed", logx.Fields{
 			"stage":      "delete_admin",
 			"admin_id":   adminID,
-			"target_uid": targetUID,
+			"target_uid": targetID,
 			"error":      err,
 		})
 		return err
@@ -298,7 +311,7 @@ func (l *user) AdminDelete(ctx context.Context, adminID, targetUID int64) error 
 	logx.Infos(ctx, "admin", "admin_delete_success", logx.Fields{
 		"stage":      "delete_admin",
 		"admin_id":   adminID,
-		"target_uid": targetUID,
+		"target_uid": targetID,
 	})
 	return nil
 }

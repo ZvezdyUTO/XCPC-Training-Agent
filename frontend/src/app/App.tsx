@@ -5,6 +5,7 @@ import { useAuth } from "../features/auth/AuthContext";
 import { AgentPage } from "../pages/AgentPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LoginPage } from "../pages/LoginPage";
+import { QueryPage } from "../pages/QueryPage";
 import { StudentsPage } from "../pages/StudentsPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -32,6 +33,7 @@ export function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="students" element={<StudentsPage />} />
+        <Route path="query" element={<QueryPage />} />
         <Route path="agent" element={<AgentPage />} />
       </Route>
       <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />

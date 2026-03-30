@@ -37,8 +37,10 @@ def build_output(student_id, from_dt, to_dt, contests, daily):
                 "student_id": d.student_id,
                 "date": d.date.replace(tzinfo=UTC_PLUS_8).isoformat(),
                 "cf_new_total": d.cf_new_total,
+                "cf_new_undefined": d.cf_new_undefined,
                 "cf_new": d.cf_new,
                 "ac_new_total": d.ac_new_total,
+                "ac_new_undefined": d.ac_new_undefined,
                 "ac_new_range": d.ac_new_range,
             }
             for d in daily

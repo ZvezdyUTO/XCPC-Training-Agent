@@ -42,10 +42,8 @@ func (l *defaultService) RunTask(
 
 	tools := agenttooling.NewToolbox()
 	tools.Register(l.svcCtx.TrainingSummaryTool)
-	tools.Register(l.svcCtx.ContestRatingSummaryTool)
-	tools.Register(l.svcCtx.TrainingDayLeaderboardTool)
-	tools.Register(l.svcCtx.TrainingWeekLeaderboardTool)
-	tools.Register(l.svcCtx.TrainingMonthLeaderboardTool)
+	tools.Register(l.svcCtx.StudentContestRecordsTool)
+	tools.Register(l.svcCtx.TrainingValueLeaderboardTool)
 	tools.Register(l.svcCtx.ContestRankingTool)
 
 	traceCollector := agentobserve.NewCollector(parseCollectorMode(req.TraceMode))

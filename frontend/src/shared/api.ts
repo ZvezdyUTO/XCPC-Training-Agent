@@ -5,7 +5,10 @@ import type {
   ContestRankingPayload,
   LoginPayload,
   SyncAllTrainingPayload,
+  SyncOneTrainingPayload,
   SyncStateListPayload,
+  TrainingLeaderboardPayload,
+  TrainingSummaryPayload,
   UserItem,
   UserListPayload,
 } from "./types";
@@ -73,11 +76,24 @@ export const api = {
       body: { users },
     });
   },
+  deleteUser(token: string, studentID: string) {
+    return request<unknown>(`/v1/admin/users/${studentID}`, {
+      method: "DELETE",
+      token,
+    });
+  },
   syncAllTraining(token: string) {
     return request<SyncAllTrainingPayload>("/v1/admin/op/training/syncall", {
       method: "POST",
       token,
       body: {},
+    });
+  },
+  syncOneTraining(token: string, studentID: string) {
+    return request<SyncOneTrainingPayload>("/v1/admin/op/training/syncone", {
+      method: "POST",
+      token,
+      body: { student_id: studentID },
     });
   },
   listSyncStates(token: string) {
@@ -91,6 +107,26 @@ export const api = {
       contest_id: contestID,
     });
     return request<ContestRankingPayload>(`/v1/admin/op/contest/ranking?${params.toString()}`, {
+      token,
+    });
+  },
+  getTrainingSummary(token: string, studentID: string, from: string, to: string) {
+    const params = new URLSearchParams({
+      student_id: studentID,
+      from,
+      to,
+    });
+    return request<TrainingSummaryPayload>(`/v1/admin/op/training/summary?${params.toString()}`, {
+      token,
+    });
+  },
+  getTrainingLeaderboard(token: string, from: string, to: string, topN: number) {
+    const params = new URLSearchParams({
+      from,
+      to,
+      top_n: String(topN),
+    });
+    return request<TrainingLeaderboardPayload>(`/v1/admin/op/training/leaderboard?${params.toString()}`, {
       token,
     });
   },

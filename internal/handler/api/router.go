@@ -13,8 +13,9 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 	// 实例化 Logic，拆分一类并且使用构造函数注入，使每个模块值依赖自身接口，并且保持边界清晰。
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	var (
-		userLogic     = logic.NewUser(svc.UsersModel)
-		trainingLogic = student_data.NewTrainingLogic(
+		userLogic        = logic.NewUser(svc.UsersModel)
+		leaderboardLogic = logic.NewTrainingLeaderboard(svc.UsersModel, svc.DailyModel, svc.ContestModel)
+		trainingLogic    = student_data.NewTrainingLogic(
 			svc.UsersModel,
 			svc.ContestModel,
 			svc.DailyModel,
@@ -30,7 +31,7 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 		userSelf   = NewUserSelf(svc, userLogic)
 		adminUser  = NewAdminUser(svc, userLogic)
 		userPublic = NewUserPublic(svc, userLogic)
-		adminOp    = NewAdminOperator(svc, trainingLogic)
+		adminOp    = NewAdminOperator(svc, trainingLogic, leaderboardLogic)
 		adminAgent = NewAdminAgent(svc, agentLogic)
 	)
 

@@ -66,6 +66,7 @@ def build_cf_daily_stats(
     """
     solved = set()
     daily: Dict[datetime, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    undefined_daily: Dict[datetime, int] = defaultdict(int)
 
     for sub in submissions:
         if sub.get("verdict") != "OK":
@@ -84,24 +85,29 @@ def build_cf_daily_stats(
         solved.add(key)
 
         rating = problem.get("rating")
-        if rating is None:
-            # 没 rating 的题直接不入桶（你若要统计可加 "undefined"）
-            continue
-
         ts = datetime.fromtimestamp(sub["creationTimeSeconds"])
         d = normalize_date(ts)
+        if rating is None:
+            undefined_daily[d] += 1
+            continue
+
         daily[d][int(rating)] += 1
 
     out: List[DailyTrainingStats] = []
-    for d, bucket in sorted(daily.items()):
-        total = sum(bucket.values())
+    all_dates = sorted(set(daily.keys()) | set(undefined_daily.keys()))
+    for d in all_dates:
+        bucket = daily[d]
+        undefined_count = undefined_daily[d]
+        total = sum(bucket.values()) + undefined_count
         out.append(
             DailyTrainingStats(
                 student_id=student_id,
                 date=d,
                 cf_new_total=total,
+                cf_new_undefined=undefined_count,
                 cf_new=dict(bucket),
                 ac_new_total=0,
+                ac_new_undefined=0,
                 ac_new_range={},
             )
         )
@@ -198,8 +204,10 @@ def build_ac_daily_stats(
                 student_id=student_id,
                 date=d,
                 cf_new_total=0,
+                cf_new_undefined=0,
                 cf_new={},
                 ac_new_total=total,
+                ac_new_undefined=bucket.get("undefined", 0),
                 ac_new_range=dict(bucket),
             )
         )
@@ -222,8 +230,10 @@ def merge_daily_stats(
                 student_id=student_id,
                 date=d,
                 cf_new_total=0,
+                cf_new_undefined=0,
                 cf_new={},
                 ac_new_total=0,
+                ac_new_undefined=0,
                 ac_new_range={},
             )
         return by_date[d]
@@ -231,12 +241,14 @@ def merge_daily_stats(
     for s in cf_list:
         x = ensure(s.date)
         x.cf_new_total += s.cf_new_total
+        x.cf_new_undefined += s.cf_new_undefined
         for k, v in s.cf_new.items():
             x.cf_new[k] = x.cf_new.get(k, 0) + v
 
     for s in ac_list:
         x = ensure(s.date)
         x.ac_new_total += s.ac_new_total
+        x.ac_new_undefined += s.ac_new_undefined
         for k, v in s.ac_new_range.items():
             x.ac_new_range[k] = x.ac_new_range.get(k, 0) + v
 

@@ -6,6 +6,12 @@ type SyncStudentItem struct {
 	StudentID string `json:"student_id" binding:"required"`
 }
 
+// AdminSyncOneTrainingReq 描述管理员触发单个学生训练同步的请求。
+// 这里只接收明确的 student_id，不额外支持批量或模糊匹配。
+type AdminSyncOneTrainingReq struct {
+	StudentID string `json:"student_id" binding:"required"`
+}
+
 type AdminSyncTrainingReq struct {
 	Students []SyncStudentItem `json:"students" binding:"required,dive"`
 	From     time.Time         `json:"from" binding:"required"`
@@ -48,12 +54,14 @@ type DailyTrainingStats struct {
 	Date      time.Time `json:"date"`
 
 	// CF
-	CFNewTotal int         `json:"cf_new_total"`
-	CFNew      map[int]int `json:"cf_new"` // JSON object keys 会是字符串 "800"，Go 这边能转成 int
+	CFNewTotal     int         `json:"cf_new_total"`
+	CFNewUndefined int         `json:"cf_new_undefined"`
+	CFNew          map[int]int `json:"cf_new"` // JSON object keys 会是字符串 "800"，Go 这边能转成 int
 
 	// AC
-	ACNewTotal int            `json:"ac_new_total"`
-	ACNewRange map[string]int `json:"ac_new_range"`
+	ACNewTotal     int            `json:"ac_new_total"`
+	ACNewUndefined int            `json:"ac_new_undefined"`
+	ACNewRange     map[string]int `json:"ac_new_range"`
 }
 
 // ImportContestRecordsReq 批量导入比赛记录请求

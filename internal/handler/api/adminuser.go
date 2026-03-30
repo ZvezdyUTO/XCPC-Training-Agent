@@ -49,19 +49,18 @@ func (h *AdminUser) List(ctx *gin.Context) {
 
 func (h *AdminUser) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
+	if idStr == "" {
 		httpx.FailWithErr(ctx, errors.New("参数错误"))
 		return
 	}
 
 	uid, _ := h.svcCtx.JWT.GetUID(ctx)
-	if uid == id {
+	if strconv.FormatInt(uid, 10) == idStr {
 		httpx.FailWithErr(ctx, errors.New("不能删除自己"))
 		return
 	}
 
-	err = h.user.AdminDelete(ctx.Request.Context(), uid, id)
+	err := h.user.AdminDelete(ctx.Request.Context(), uid, idStr)
 	if err != nil {
 		httpx.FailWithErr(ctx, err)
 	} else {

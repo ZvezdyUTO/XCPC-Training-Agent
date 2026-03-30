@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -79,6 +80,9 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 
 	if c.apiKey == "" || c.baseURL == "" {
 		return nil, apperr.New(apperr.KindConfig, "openai_config_missing", "缺少 OPENAI_API_KEY 或 OPENAI_BASE_URL 配置", 500)
+	}
+	if err := validateBaseURL(c.baseURL); err != nil {
+		return nil, err
 	}
 
 	body := map[string]any{
@@ -175,6 +179,15 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 		},
 		RawResponse: string(respBody),
 	}, nil
+}
+
+// validateBaseURL 只校验当前运行必需的 URL 形态，配置非法时直接返回明确错误。
+func validateBaseURL(raw string) error {
+	parsed, err := url.ParseRequestURI(raw)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return apperr.New(apperr.KindConfig, "openai_base_url_invalid", "OPENAI_BASE_URL 配置非法", 500)
+	}
+	return nil
 }
 
 // normalizeMessage 将 provider 原始消息格式统一成内部 Message 结构。

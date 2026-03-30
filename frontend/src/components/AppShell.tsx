@@ -6,6 +6,7 @@ import { useState } from "react";
 const navItems = [
   { to: "/", label: "总览" },
   { to: "/students", label: "学生" },
+  { to: "/query", label: "查询" },
   { to: "/agent", label: "Agent" },
 ];
 
@@ -29,8 +30,12 @@ export function AppShell() {
     <div className="shell">
       <aside className="sidebar">
         <div>
-          <div className="brand">XCPC Coach</div>
-          <div className="brand-subtitle">训练管理教练端</div>
+          <div className="brand brand-stacked">
+            <span>XCPC</span>
+            <span>TRAINING</span>
+            <span>AGENT</span>
+          </div>
+          <div className="brand-subtitle">教练端</div>
         </div>
 
         <nav className="nav">
@@ -50,7 +55,7 @@ export function AppShell() {
         <header className="topbar">
           <div>
             <div className="page-title">教练工作台</div>
-            <div className="page-subtitle">轻量管理学生数据与 Agent 分析</div>
+            <div className="page-subtitle">学生管理、训练同步和查询入口</div>
           </div>
 
           <div className="topbar-actions">

@@ -137,6 +137,7 @@ func (m *defaultDailyTrainingStats) SumRange(
 		Select(`
 			student_id,
 			SUM(cf_new_total) as cf_new_total,
+			SUM(cf_new_undefined) as cf_new_undefined,
 			SUM(cf_new_800) as cf_new_800,
 			SUM(cf_new_900) as cf_new_900,
 			SUM(cf_new_1000) as cf_new_1000,
@@ -157,7 +158,17 @@ func (m *defaultDailyTrainingStats) SumRange(
 			SUM(cf_new_2500) as cf_new_2500,
 			SUM(cf_new_2600) as cf_new_2600,
 			SUM(cf_new_2700) as cf_new_2700,
-			SUM(cf_new_2800_plus) as cf_new_2800_plus
+			SUM(cf_new_2800_plus) as cf_new_2800_plus,
+			SUM(ac_new_total) as ac_new_total,
+			SUM(ac_new_undefined) as ac_new_undefined,
+			SUM(ac_new_0_399) as ac_new_0_399,
+			SUM(ac_new_400_799) as ac_new_400_799,
+			SUM(ac_new_800_1199) as ac_new_800_1199,
+			SUM(ac_new_1200_1599) as ac_new_1200_1599,
+			SUM(ac_new_1600_1999) as ac_new_1600_1999,
+			SUM(ac_new_2000_2399) as ac_new_2000_2399,
+			SUM(ac_new_2400_2799) as ac_new_2400_2799,
+			SUM(ac_new_2800_plus) as ac_new_2800_plus
 		`).
 		Where("student_id = ?", studentID).
 		Where("stat_date BETWEEN ? AND ?", from, to).
