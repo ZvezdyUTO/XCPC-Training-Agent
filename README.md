@@ -18,6 +18,7 @@ XCPC-Training-Agent 是一个面向集训队训练管理的后端服务，提供
 - GORM + MySQL
 - OpenAI-compatible LLM API
 - Python crawler
+- React + Vite coach frontend
 - Docker Compose
 
 ## Quick Start
@@ -50,6 +51,7 @@ docker compose up -d
 默认服务地址：
 
 - API: `http://localhost:8888`
+- Frontend: `http://localhost:5173`
 - MySQL: `127.0.0.1:3307`
 
 ### 3. Default admin account
@@ -96,6 +98,28 @@ curl -s http://localhost:8888/v1/admin/agent/task/run \
     "trace_mode": "summary"
   }'
 ```
+
+## Frontend
+
+教练端前端位于 [frontend/package.json](/home/zvezdyuto/GolandProjects/XCPC-Training-Agent/frontend/package.json)，与后端代码独立维护。
+
+本地开发：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+默认开发地址：
+
+- Frontend dev: `http://localhost:5173`
+- API 代理到: `http://localhost:8888`
+
+容器部署：
+
+- `docker compose up -d --build`
+- 浏览器访问 `http://localhost:5173`
 
 ## Repository Layout
 

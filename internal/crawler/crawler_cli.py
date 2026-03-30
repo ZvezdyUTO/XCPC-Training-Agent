@@ -1,9 +1,11 @@
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from service import fetch_range
+
+UTC_PLUS_8 = timezone(timedelta(hours=8))
 
 
 def parse_date(s: str) -> datetime:
@@ -21,7 +23,7 @@ def build_output(student_id, from_dt, to_dt, contests, daily):
                 "platform": c.platform,
                 "contest_id": c.contest_id,
                 "name": c.name,
-                "date": c.date.replace(tzinfo=timezone.utc).isoformat(),
+                "date": c.date.replace(tzinfo=UTC_PLUS_8).isoformat(),
                 "rank": c.rank,
                 "old_rating": c.old_rating,
                 "new_rating": c.new_rating,
@@ -33,7 +35,7 @@ def build_output(student_id, from_dt, to_dt, contests, daily):
         "daily_stats": [
             {
                 "student_id": d.student_id,
-                "date": d.date.replace(tzinfo=timezone.utc).isoformat(),
+                "date": d.date.replace(tzinfo=UTC_PLUS_8).isoformat(),
                 "cf_new_total": d.cf_new_total,
                 "cf_new": d.cf_new,
                 "ac_new_total": d.ac_new_total,

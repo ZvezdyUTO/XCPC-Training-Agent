@@ -8,6 +8,23 @@ import (
 	"encoding/json"
 )
 
+func loadStudentNameMap(ctx context.Context, users model.UsersModel, studentIDs []string) (map[string]string, error) {
+	if len(studentIDs) == 0 {
+		return map[string]string{}, nil
+	}
+
+	list, _, err := users.List(ctx, &domain.UserListReq{Ids: studentIDs})
+	if err != nil {
+		return nil, err
+	}
+
+	nameMap := make(map[string]string, len(list))
+	for _, user := range list {
+		nameMap[user.Id] = user.Name
+	}
+	return nameMap, nil
+}
+
 type ContestRankingTool struct {
 	contest model.ContestRecordModel
 	users   model.UsersModel
@@ -66,7 +83,7 @@ func (t *ContestRankingTool) Call(ctx context.Context, input json.RawMessage) (a
 		Platform:  args.Platform,
 		ContestID: args.ContestID,
 		Count:     len(list),
-		Items:     make([]domain.ContestRecord, 0, len(list)),
+		Items:     make([]domain.ContestRankingItem, 0, len(list)),
 	}
 
 	if len(list) > 0 {
@@ -76,10 +93,20 @@ func (t *ContestRankingTool) Call(ctx context.Context, input json.RawMessage) (a
 		}
 	}
 
+	studentIDs := make([]string, 0, len(list))
 	for _, record := range list {
+		studentIDs = append(studentIDs, record.StudentID)
+	}
 
-		res.Items = append(res.Items, domain.ContestRecord{
+	nameMap, err := loadStudentNameMap(ctx, t.users, studentIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, record := range list {
+		res.Items = append(res.Items, domain.ContestRankingItem{
 			StudentID:    record.StudentID,
+			StudentName:  nameMap[record.StudentID],
 			Platform:     record.Platform,
 			ContestID:    record.ContestID,
 			Name:         record.ContestName,
@@ -88,7 +115,6 @@ func (t *ContestRankingTool) Call(ctx context.Context, input json.RawMessage) (a
 			OldRating:    record.OldRating,
 			NewRating:    record.NewRating,
 			RatingChange: record.RatingChange,
-			Performance:  record.Performance,
 		})
 	}
 

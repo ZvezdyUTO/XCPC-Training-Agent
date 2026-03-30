@@ -16,47 +16,11 @@ type finalOutput struct {
 	Metrics       map[string]interface{} `json:"metrics"`
 }
 
-// finalOutputResponseFormat 返回当前运行要求模型遵守的原生 JSON Schema 输出约束。
-// runtime 只在这里声明最终答案结构，不把 provider 协议扩散到其它模块。
+// finalOutputResponseFormat 返回当前运行要求模型启用 JSON mode。
+// 这里不再依赖 provider 对 json_schema 的严格实现，只要求最终输出是合法 JSON 对象。
 func finalOutputResponseFormat() *agentllm.ResponseFormat {
 	return &agentllm.ResponseFormat{
-		Type: "json_schema",
-		JSONSchema: &agentllm.ResponseJSONSchema{
-			Name:   "agent_final_output",
-			Strict: true,
-			Schema: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"decision_type": map[string]any{
-						"type": "string",
-					},
-					"focus_students": map[string]any{
-						"type": "array",
-						"items": map[string]any{
-							"type": "string",
-						},
-					},
-					"confidence": map[string]any{
-						"type": "number",
-					},
-					"report": map[string]any{
-						"type": "string",
-					},
-					"metrics": map[string]any{
-						"type":                 "object",
-						"additionalProperties": true,
-					},
-				},
-				"required": []string{
-					"decision_type",
-					"focus_students",
-					"confidence",
-					"report",
-					"metrics",
-				},
-				"additionalProperties": false,
-			},
-		},
+		Type: "json_object",
 	}
 }
 

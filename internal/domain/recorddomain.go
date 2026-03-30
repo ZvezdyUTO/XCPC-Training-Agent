@@ -28,6 +28,21 @@ type ContestRecord struct {
 	Performance  int `json:"performance"`
 }
 
+// ContestRankingItem 表示某场比赛中一个成员的排名结果。
+// 该结构专门用于排名查询返回，保留展示所需字段，并显式补充学生姓名。
+type ContestRankingItem struct {
+	StudentID    string    `json:"student_id"`
+	StudentName  string    `json:"student_name"`
+	Platform     string    `json:"platform"`
+	ContestID    string    `json:"contest_id"`
+	Name         string    `json:"name"`
+	Date         time.Time `json:"date"`
+	Rank         int       `json:"rank"`
+	OldRating    int       `json:"old_rating"`
+	NewRating    int       `json:"new_rating"`
+	RatingChange int       `json:"rating_change"`
+}
+
 type DailyTrainingStats struct {
 	StudentID string    `json:"student_id"`
 	Date      time.Time `json:"date"`
@@ -80,13 +95,11 @@ type DeleteTrainingByDateReq struct {
 	Date      time.Time
 }
 
-
-
 type ContestRankingResult struct {
 	Platform    string               `json:"platform"`
 	ContestID   string               `json:"contest_id"`
 	ContestName string               `json:"contest_name"`
 	ContestDate string               `json:"contest_date"`
 	Count       int                  `json:"count"`
-	Items       []ContestRecord     `json:"items"`
+	Items       []ContestRankingItem `json:"items"`
 }

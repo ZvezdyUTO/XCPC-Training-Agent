@@ -21,9 +21,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_BASE_URL: ${LLM_BASE_URL:-}
-      LLM_MODEL: ${LLM_MODEL:-glm-4.7}
+      OPENAI_API_KEY: <TOKEN>
+      OPENAI_BASE_URL: <URL>
+      LLM_MODEL: <MODEl>
       AGENT_TEST: ${AGENT_TEST:-1}
     ports:
       - "8888:8888"
@@ -32,6 +32,20 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    restart: always
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app/frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://app:8888
+    command: sh -c "npm install && npm run dev"
+    volumes:
+      - .:/app
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
     restart: always
 
 volumes:
