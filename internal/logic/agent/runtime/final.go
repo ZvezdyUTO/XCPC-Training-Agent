@@ -9,11 +9,13 @@ import (
 
 // finalOutput 是 runtime 期待模型返回的最终 JSON 结构。
 type finalOutput struct {
-	DecisionType  string                 `json:"decision_type"`
-	FocusStudents []string               `json:"focus_students"`
-	Confidence    float64                `json:"confidence"`
-	Report        string                 `json:"report"`
-	Metrics       map[string]interface{} `json:"metrics"`
+	DecisionType   string                 `json:"decision_type"`
+	FocusStudents  []string               `json:"focus_students"`
+	Confidence     float64                `json:"confidence"`
+	OverallSummary string                 `json:"overall_summary"`
+	Report         string                 `json:"report"`
+	KeyFindings    []string               `json:"key_findings"`
+	Metrics        map[string]interface{} `json:"metrics"`
 }
 
 // finalOutputResponseFormat 返回当前运行要求模型启用 JSON mode。
@@ -33,21 +35,29 @@ func finishOutput(raw string) (map[string]any, error) {
 	if final.DecisionType == "" {
 		return nil, errors.New("缺少 decision_type")
 	}
+	if final.OverallSummary == "" {
+		return nil, errors.New("缺少 overall_summary")
+	}
 	if final.Report == "" {
 		return nil, errors.New("缺少 report")
 	}
 	if final.FocusStudents == nil {
 		final.FocusStudents = []string{}
 	}
+	if final.KeyFindings == nil {
+		final.KeyFindings = []string{}
+	}
 	if final.Metrics == nil {
 		final.Metrics = map[string]any{}
 	}
 	return map[string]any{
-		"decision_type":  final.DecisionType,
-		"focus_students": final.FocusStudents,
-		"confidence":     final.Confidence,
-		"report":         final.Report,
-		"metrics":        final.Metrics,
+		"decision_type":   final.DecisionType,
+		"focus_students":  final.FocusStudents,
+		"confidence":      final.Confidence,
+		"overall_summary": final.OverallSummary,
+		"report":          final.Report,
+		"key_findings":    final.KeyFindings,
+		"metrics":         final.Metrics,
 	}, nil
 }
 

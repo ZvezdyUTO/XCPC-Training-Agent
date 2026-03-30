@@ -9,11 +9,34 @@ import (
 // Snapshot 是单次运行中持续演进的轻量上下文快照。
 // 它只保留对下一轮推理有帮助的状态，不负责完整记录全部历史。
 type Snapshot struct {
-	Goal           string   `json:"goal"`
-	ConfirmedFacts []string `json:"confirmed_facts"`
-	DoneItems      []string `json:"done_items"`
-	TodoItems      []string `json:"todo_items"`
-	Artifacts      []string `json:"artifacts"`
+	Goal          string        `json:"goal"`
+	PlanState     PlanState     `json:"plan_state"`
+	ToolSummaries []ToolSummary `json:"tool_summaries"`
+}
+
+// PlanState 是当前运行使用的轻量计划状态机。
+// 它只维护计划步骤和当前执行位置，不记录长推理链或自由文本过程。
+type PlanState struct {
+	Initialized bool       `json:"initialized"`
+	Version     int        `json:"version"`
+	CurrentStep int        `json:"current_step"`
+	Steps       []PlanStep `json:"steps"`
+}
+
+// PlanStep 表示计划中的一个微型步骤。
+// 步骤标题应简短、可执行，状态只使用固定枚举值。
+type PlanStep struct {
+	Index  int    `json:"index"`
+	Title  string `json:"title"`
+	Status string `json:"status"`
+}
+
+// ToolSummary 是写入快照的历史工具结果摘要。
+// 快照只保留压缩后的历史事实，不再重复存储旧的全量工具结果。
+type ToolSummary struct {
+	ToolName string         `json:"tool_name"`
+	Success  bool           `json:"success"`
+	Summary  map[string]any `json:"summary"`
 }
 
 // ToolResultSummary 是写入上下文状态的工具结果记录。
@@ -48,5 +71,17 @@ type State struct {
 type Manager interface {
 	Open(ctx stdctx.Context, input agent.Input) (*State, error)
 	BuildMessages(state *State, conversation []agentllm.Message) []agentllm.Message
+	ApplyAssistantTurn(state *State, message agentllm.Message) AssistantTurnOutcome
 	ApplyToolResult(state *State, patch ToolResultPatch)
+	PrepareFinalization(state *State) bool
+	CompleteFinalization(state *State)
+	AcceptDirectOutput(state *State)
+}
+
+// AssistantTurnOutcome 描述一次 assistant 回合写回上下文后的最小结果。
+// runtime 只依赖这两个字段判断是否继续沿当前轮推进。
+type AssistantTurnOutcome struct {
+	Message          agentllm.Message
+	HasPlanDirective bool
+	Error            error
 }

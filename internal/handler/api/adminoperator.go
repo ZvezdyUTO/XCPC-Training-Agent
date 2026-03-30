@@ -188,7 +188,7 @@ func (h *AdminOperator) GetTrainingSummaryRange(ctx *gin.Context) {
 	}
 
 	dist, acDist := applogic.BuildTrainingDistributions(res)
-	trainingValue := applogic.BuildTrainingValueSummary(res, records)
+	trainingValue := applogic.BuildTrainingValueSummary(res, records, fromTime, toTime)
 
 	httpx.OkWithData(ctx, gin.H{
 		"student_id":      req.StudentID,

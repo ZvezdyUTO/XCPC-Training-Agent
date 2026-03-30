@@ -97,7 +97,7 @@ const (
 
 // RunTrace 是一次运行结束后对外暴露的完整 trace 结果。
 type RunTrace struct {
-	RunID      string            `json:"run_id"`
+	RunID      string            `json:"-"`
 	Mode       Mode              `json:"mode"`
 	StartedAt  time.Time         `json:"started_at"`
 	FinishedAt time.Time         `json:"finished_at"`
@@ -116,9 +116,9 @@ type TokenUsageSummary struct {
 
 // Event 是 trace 中的一条瞬时事件记录。
 type Event struct {
-	EventID   string         `json:"event_id"`
-	RunID     string         `json:"run_id"`
-	ParentID  string         `json:"parent_id,omitempty"`
+	EventID   string         `json:"-"`
+	RunID     string         `json:"-"`
+	ParentID  string         `json:"-"`
 	Step      int            `json:"step"`
 	EventType EventType      `json:"event_type"`
 	Timestamp time.Time      `json:"timestamp"`
@@ -127,9 +127,9 @@ type Event struct {
 
 // Span 是 trace 中的一段耗时区间记录。
 type Span struct {
-	SpanID       string         `json:"span_id"`
-	RunID        string         `json:"run_id"`
-	ParentSpanID string         `json:"parent_span_id,omitempty"`
+	SpanID       string         `json:"-"`
+	RunID        string         `json:"-"`
+	ParentSpanID string         `json:"-"`
 	Step         int            `json:"step"`
 	SpanType     SpanType       `json:"span_type"`
 	StartedAt    time.Time      `json:"started_at"`

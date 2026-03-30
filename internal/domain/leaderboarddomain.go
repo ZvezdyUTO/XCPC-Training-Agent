@@ -25,10 +25,12 @@ type TrainingLeaderboardItem struct {
 	StudentID       string                           `json:"student_id"`
 	StudentName     string                           `json:"student_name"`
 	SolvedTotal     int                              `json:"solved_total"`
+	DailyAverage    float64                          `json:"daily_average"`
 	Score           float64                          `json:"score"`
 	VolumeScore     float64                          `json:"volume_score"`
 	DifficultyScore float64                          `json:"difficulty_score"`
 	ChallengeScore  float64                          `json:"challenge_score"`
+	ContestScore    float64                          `json:"contest_score"`
 	UndefinedTotal  int                              `json:"undefined_total"`
 	UndefinedRatio  float64                          `json:"undefined_ratio"`
 	CFRating        TrainingLeaderboardRatingProfile `json:"cf_rating"`
@@ -61,10 +63,12 @@ type TrainingLeaderboardPlatformScore struct {
 type TrainingValueSummary struct {
 	ScoringVersion  string                           `json:"scoring_version"`
 	SolvedTotal     int                              `json:"solved_total"`
+	DailyAverage    float64                          `json:"daily_average"`
 	Score           float64                          `json:"score"`
 	VolumeScore     float64                          `json:"volume_score"`
 	DifficultyScore float64                          `json:"difficulty_score"`
 	ChallengeScore  float64                          `json:"challenge_score"`
+	ContestScore    float64                          `json:"contest_score"`
 	UndefinedTotal  int                              `json:"undefined_total"`
 	UndefinedRatio  float64                          `json:"undefined_ratio"`
 	CFRating        TrainingLeaderboardRatingProfile `json:"cf_rating"`

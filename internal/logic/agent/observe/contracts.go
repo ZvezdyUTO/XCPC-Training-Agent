@@ -21,7 +21,7 @@ type Observer interface {
 	ModelFinished(step int, completion *agentllm.ChatCompletion, parseErr error)
 	ToolStarted(step int, name string, args string, toolCallID string)
 	ToolFinished(step int, result tooling.CallResult, err error, latencyMs int64)
-	RunFinished(step int, output map[string]any)
+	RunFinished(step int, output map[string]any, planState any)
 	RunFailed(step int, stage string, err error, extra map[string]any)
 }
 

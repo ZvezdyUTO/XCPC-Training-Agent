@@ -20,6 +20,17 @@ type RequestOptions = {
   signal?: AbortSignal;
 };
 
+/** ApiRequestError 保留后端错误响应中的 data，便于失败态继续展示 trace。 */
+export class ApiRequestError<T = unknown> extends Error {
+  data?: T;
+
+  constructor(message: string, data?: T) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.data = data;
+  }
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(path, {
     method: options.method ?? "GET",
@@ -39,7 +50,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new Error(`接口 ${path} 返回了非 JSON 内容，通常表示代理未生效、接口地址错误或服务返回了 HTML 页面`);
   }
   if (!response.ok || payload.code !== 200) {
-    throw new Error(payload.msg || "请求失败");
+    throw new ApiRequestError<T>(payload.msg || "请求失败", payload.data);
   }
   return payload.data;
 }

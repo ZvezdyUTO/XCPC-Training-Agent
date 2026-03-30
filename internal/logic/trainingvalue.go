@@ -3,6 +3,7 @@ package logic
 import (
 	"aATA/internal/domain"
 	"aATA/internal/model"
+	"time"
 )
 
 // BuildTrainingDistributions 把落库统计转成前端和 Agent 直接使用的区间分布。
@@ -43,6 +44,8 @@ func BuildTrainingDistributions(stats *model.DailyTrainingStats) (map[string]int
 func BuildTrainingValueSummary(
 	stats *model.DailyTrainingStats,
 	records []*model.ContestRecord,
+	from time.Time,
+	to time.Time,
 ) domain.TrainingValueSummary {
 	if stats == nil {
 		stats = &model.DailyTrainingStats{}
@@ -66,14 +69,23 @@ func BuildTrainingValueSummary(
 
 	solvedTotal := cfScore.solvedTotal + acScore.solvedTotal
 	undefinedTotal := cfScore.undefinedTotal + acScore.undefinedTotal
+	rangeDays := calcRangeDays(from, to)
+	volumeFactor, dailyAverage := calcVolumeFactor(solvedTotal, rangeDays)
+	cfScore.volumeScore = round2(cfScore.volumeScore * volumeFactor)
+	acScore.volumeScore = round2(acScore.volumeScore * volumeFactor)
+	cfScore.score = cfScore.volumeScore + cfScore.difficultyScore + cfScore.challengeScore
+	acScore.score = acScore.volumeScore + acScore.difficultyScore + acScore.challengeScore
+	contestScore := buildContestScore(records, to)
 
 	return domain.TrainingValueSummary{
 		ScoringVersion:  trainingLeaderboardVersion,
 		SolvedTotal:     solvedTotal,
-		Score:           round2(cfScore.score + acScore.score),
+		DailyAverage:    round2(dailyAverage),
+		Score:           round2(cfScore.score + acScore.score + contestScore),
 		VolumeScore:     round2(cfScore.volumeScore + acScore.volumeScore),
 		DifficultyScore: round2(cfScore.difficultyScore + acScore.difficultyScore),
 		ChallengeScore:  round2(cfScore.challengeScore + acScore.challengeScore),
+		ContestScore:    round2(contestScore),
 		UndefinedTotal:  undefinedTotal,
 		UndefinedRatio:  round4(safeDiv(float64(undefinedTotal), float64(solvedTotal))),
 		CFRating:        toDomainRatingProfile(cfRating),

@@ -50,6 +50,15 @@ func (m *DefaultManager) BuildMessages(state *State, conversation []agentllm.Mes
 	return out
 }
 
+// ApplyAssistantTurn 解析 assistant 回合中的计划协议块，并返回适合继续写入对话历史的消息。
+// 计划原文在解析后不再作为长期真相来源，而是转成结构化状态回写到 Snapshot。
+func (m *DefaultManager) ApplyAssistantTurn(state *State, message agentllm.Message) AssistantTurnOutcome {
+	if state == nil {
+		return AssistantTurnOutcome{Message: message}
+	}
+	return applyAssistantTurnToSnapshot(&state.Snapshot, message)
+}
+
 // ApplyToolResult 将一次工具调用结果写回上下文状态，供后续轮次推理使用。
 func (m *DefaultManager) ApplyToolResult(state *State, patch ToolResultPatch) {
 	if state == nil {
@@ -57,4 +66,31 @@ func (m *DefaultManager) ApplyToolResult(state *State, patch ToolResultPatch) {
 	}
 	state.ToolResults = appendToolResultSummary(state.ToolResults, patch)
 	applyToolResultToSnapshot(&state.Snapshot, patch)
+}
+
+// PrepareFinalization 在进入最终 JSON 收尾前整理计划状态。
+// 它只在计划已经执行完毕，或仅剩最后一个收尾步骤时返回 true。
+func (m *DefaultManager) PrepareFinalization(state *State) bool {
+	if state == nil {
+		return false
+	}
+	return preparePlanForFinalization(&state.Snapshot.PlanState)
+}
+
+// CompleteFinalization 在最终 JSON 输出成功后提交计划完成状态。
+// 这里只做最后一步的状态收尾，不负责判断当前是否允许进入收尾阶段。
+func (m *DefaultManager) CompleteFinalization(state *State) {
+	if state == nil {
+		return
+	}
+	completePlanAfterFinalization(&state.Snapshot.PlanState)
+}
+
+// AcceptDirectOutput 在中间轮直接收到合法最终 JSON 时强制收尾计划状态。
+// 这里用于“分析步骤直接给出最终答案”的场景，避免 trace 中残留 waiting 步骤。
+func (m *DefaultManager) AcceptDirectOutput(state *State) {
+	if state == nil {
+		return
+	}
+	completePlanAfterDirectOutput(&state.Snapshot.PlanState)
 }

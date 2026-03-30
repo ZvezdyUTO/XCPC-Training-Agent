@@ -102,7 +102,6 @@ export interface AgentTokenUsage {
 
 /** AgentTrace 对应后端可选返回的 trace。 */
 export interface AgentTrace {
-  run_id: string;
   mode: string;
   started_at?: string;
   finished_at?: string;
@@ -111,10 +110,10 @@ export interface AgentTrace {
   events: Array<Record<string, unknown>>;
 }
 
-/** AgentRunPayload 是 Agent HTTP 接口成功返回的主体。 */
+/** AgentRunPayload 是 Agent HTTP 接口返回给前端的运行主体。 */
 export interface AgentRunPayload {
   task: string;
-  result: Record<string, unknown>;
+  result?: Record<string, unknown>;
   token_usage: AgentTokenUsage;
   trace?: AgentTrace;
 }
@@ -155,10 +154,12 @@ export interface TrainingSummaryPayload {
   training_value?: {
     scoring_version: string;
     solved_total: number;
+    daily_average: number;
     score: number;
     volume_score: number;
     difficulty_score: number;
     challenge_score: number;
+    contest_score: number;
     undefined_total: number;
     undefined_ratio: number;
     cf_rating: TrainingLeaderboardRatingProfile;
@@ -190,10 +191,12 @@ export interface TrainingLeaderboardItem {
   student_id: string;
   student_name: string;
   solved_total: number;
+  daily_average: number;
   score: number;
   volume_score: number;
   difficulty_score: number;
   challenge_score: number;
+  contest_score: number;
   undefined_total: number;
   undefined_ratio: number;
   cf_rating: TrainingLeaderboardRatingProfile;

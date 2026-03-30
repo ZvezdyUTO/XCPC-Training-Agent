@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
-import { api } from "../../shared/api";
+import { ApiRequestError, api } from "../../shared/api";
 import type { AgentRunPayload } from "../../shared/types";
 import { useAuth } from "../auth/AuthContext";
 
@@ -66,6 +66,7 @@ export function AgentRunProvider({ children }: { children: ReactNode }) {
         ),
       );
     } catch (error) {
+      const payload = error instanceof ApiRequestError ? error.data : undefined;
       setRuns((current) =>
         current.map((item) =>
           item.id === runId
@@ -73,6 +74,7 @@ export function AgentRunProvider({ children }: { children: ReactNode }) {
                 ...item,
                 status: "error",
                 finishedAt: new Date().toISOString(),
+                result: payload && typeof payload === "object" ? (payload as AgentRunPayload) : undefined,
                 error: error instanceof Error ? error.message : "运行失败",
               }
             : item,

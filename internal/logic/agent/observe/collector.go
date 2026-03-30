@@ -4,7 +4,6 @@ import (
 	"aATA/internal/logic/agent"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -139,10 +138,7 @@ func newID(prefix string) string {
 
 // summarizePayload 把 event payload 压缩成适合长期保存的摘要形式。
 func summarizePayload(mode agent.Mode, eventType agent.EventType, payload any) map[string]any {
-	summary := normalizeEnvelope(payload)
-	summary["event_kind"] = string(eventType)
-	summary["storage_mode"] = string(mode)
-	summary = summarizeMap(summary)
+	summary := summarizeMap(normalizeEnvelope(payload))
 
 	if mode == agent.ModeDebug {
 		summary["debug"] = rawPayload(payload)
@@ -153,7 +149,6 @@ func summarizePayload(mode agent.Mode, eventType agent.EventType, payload any) m
 // summarizeSpanPayload 把 span payload 压缩成适合长期保存的摘要形式。
 func summarizeSpanPayload(mode agent.Mode, payload any) map[string]any {
 	summary := summarizeMap(normalizeEnvelope(payload))
-	summary["storage_mode"] = string(mode)
 
 	if mode == agent.ModeDebug {
 		summary["debug"] = rawPayload(payload)
@@ -178,18 +173,15 @@ func normalizeEnvelope(payload any) map[string]any {
 	}
 }
 
-// summarizeMap 递归压缩 payload 中的值，避免 trace 体积失控。
+// summarizeMap 递归压缩 payload 中的值，保留适合直接阅读的摘要结构。
+// 这里会主动跳过只适合 debug 模式的大字段，避免 summary 返回过重。
 func summarizeMap(input map[string]any) map[string]any {
 	output := make(map[string]any, len(input))
 	for k, v := range input {
-		switch k {
-		case "status", "latency_ms", "error", "error_code", "entity_type", "entity_name", "finish_reason", "parse_ok":
-			output[k] = v
-		case "summary":
-			output[k] = summarizeValue(v)
-		default:
-			output[k] = summarizeValue(v)
+		if shouldOmitSummaryKey(k) {
+			continue
 		}
+		output[k] = summarizeValue(v)
 	}
 	return output
 }
@@ -215,49 +207,56 @@ func summarizeValue(v any) any {
 	case nil:
 		return nil
 	case string:
-		return map[string]any{
-			"type":    "string",
-			"length":  len(x),
-			"preview": preview(x, 200),
-		}
+		return preview(x, 240)
 	case []string:
-		return map[string]any{
-			"type":    "string_array",
-			"count":   len(x),
-			"preview": x,
-		}
+		return x
 	case []any:
-		return map[string]any{
-			"type":  "array",
-			"count": len(x),
+		if len(x) > 8 {
+			x = x[:8]
 		}
+		out := make([]any, 0, len(x))
+		for _, item := range x {
+			out = append(out, summarizeValue(item))
+		}
+		return out
 	case map[string]any:
-		keys := make([]string, 0, len(x))
-		for k := range x {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		return map[string]any{
-			"type":         "object",
-			"key_count":    len(keys),
-			"keys":         keys,
-			"json_length":  jsonLen(x),
-			"json_preview": previewJSON(x, 240),
-		}
+		return summarizeMap(x)
 	case error:
-		return map[string]any{
-			"type":    "error",
-			"message": x.Error(),
-		}
+		return x.Error()
 	case bool, int, int64, float64:
 		return x
+	case json.RawMessage:
+		return preview(string(x), 240)
 	default:
-		return map[string]any{
-			"type":         fmt.Sprintf("%T", v),
-			"json_length":  jsonLen(v),
-			"json_preview": previewJSON(v, 240),
+		var normalized any
+		if tryNormalizeValue(v, &normalized) {
+			return summarizeValue(normalized)
 		}
+		return preview(fmt.Sprintf("%v", v), 240)
 	}
+}
+
+// shouldOmitSummaryKey 定义 summary 模式下应主动丢弃的大字段。
+// 这些字段仍可通过 debug 模式下的 raw payload 查看，不应污染日常排障结果。
+func shouldOmitSummaryKey(key string) bool {
+	switch key {
+	case "messages", "content", "tool_calls", "arguments", "arguments_raw", "result", "raw_response":
+		return true
+	default:
+		return false
+	}
+}
+
+// tryNormalizeValue 尝试把结构体等复杂值转成通用 JSON 结构，便于递归摘要。
+func tryNormalizeValue(value any, target *any) bool {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return false
+	}
+	if err := json.Unmarshal(data, target); err != nil {
+		return false
+	}
+	return true
 }
 
 // rawPayload 生成 debug 模式下可附带的原始 payload 表示。

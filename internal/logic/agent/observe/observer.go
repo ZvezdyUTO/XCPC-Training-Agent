@@ -33,15 +33,13 @@ func (f TraceObserverFactory) New(llmClient agentllm.Client, input agent.Input, 
 
 // modelAttempt 记录一次尚未闭合的模型调用尝试。
 type modelAttempt struct {
-	spanID  string
-	eventID string
-	req     agentllm.ChatRequest
+	spanID string
+	req    agentllm.ChatRequest
 }
 
 // toolAttempt 记录一次尚未闭合的工具调用尝试。
 type toolAttempt struct {
 	spanID     string
-	eventID    string
 	toolName   string
 	toolCallID string
 }
@@ -50,46 +48,41 @@ type toolAttempt struct {
 type traceObserver struct {
 	trace        Sink
 	modelName    string
-	lastEventID  string
-	lastSpanID   string
 	modelAttempt *modelAttempt
 	toolAttempt  *toolAttempt
 }
 
 // RunStarted 记录本次运行的起点和已注册工具集合。
 func (o *traceObserver) RunStarted(input agent.Input, toolNames []string) {
-	runStartedID := o.trace.Record(0, agent.EventRunStarted, "", map[string]any{
-		"query":  input.Query,
-		"params": input.Params,
+	o.trace.Record(0, agent.EventRunStarted, "", map[string]any{
+		"summary": "开始运行",
+		"query":   input.Query,
+		"params":  input.Params,
 	})
 
 	names := append([]string(nil), toolNames...)
 	sort.Strings(names)
 
-	o.lastEventID = o.trace.Record(0, agent.EventToolsRegistered, runStartedID, map[string]any{
-		"status":      "success",
-		"entity_type": "registry",
-		"entity_name": "agent_tools",
-		"summary":     fmt.Sprintf("已注册 %d 个工具", len(names)),
-		"tool_names":  names,
-		"tool_count":  len(names),
+	o.trace.Record(0, agent.EventToolsRegistered, "", map[string]any{
+		"status":     "success",
+		"summary":    fmt.Sprintf("已注册 %d 个工具", len(names)),
+		"tool_names": names,
+		"tool_count": len(names),
 	})
 }
 
 // ModelStarted 记录一次模型调用开始事件，并打开对应 span。
 func (o *traceObserver) ModelStarted(step int, req agentllm.ChatRequest) {
-	spanID := o.trace.StartSpan(step, agent.SpanModelCall, o.lastSpanID, map[string]any{
-		"entity_type": "model",
-		"entity_name": o.modelName,
-		"status":      "started",
-		"summary":     "开始调用模型",
+	spanID := o.trace.StartSpan(step, agent.SpanModelCall, "", map[string]any{
+		"model_name": o.modelName,
+		"status":     "started",
+		"summary":    "开始调用模型",
 	})
 
-	eventID := o.trace.Record(step, agent.EventModelCalled, o.lastEventID, map[string]any{
+	o.trace.Record(step, agent.EventModelCalled, "", map[string]any{
 		"status":        "started",
-		"entity_type":   "model",
-		"entity_name":   o.modelName,
 		"summary":       "开始调用模型",
+		"model_name":    o.modelName,
 		"messages":      req.Messages,
 		"message_count": len(req.Messages),
 		"tool_count":    len(req.Tools),
@@ -97,9 +90,8 @@ func (o *traceObserver) ModelStarted(step int, req agentllm.ChatRequest) {
 	})
 
 	o.modelAttempt = &modelAttempt{
-		spanID:  spanID,
-		eventID: eventID,
-		req:     req,
+		spanID: spanID,
+		req:    req,
 	}
 }
 
@@ -113,8 +105,7 @@ func (o *traceObserver) ModelFinished(step int, completion *agentllm.ChatComplet
 	summary := buildModelReturnSummary(completion, parseErr)
 
 	o.trace.FinishSpan(o.modelAttempt.spanID, "success", map[string]any{
-		"entity_type":   "model",
-		"entity_name":   o.modelName,
+		"model_name":    o.modelName,
 		"summary":       summary,
 		"latency_ms":    completion.LatencyMs,
 		"finish_reason": completion.FinishReason,
@@ -125,52 +116,48 @@ func (o *traceObserver) ModelFinished(step int, completion *agentllm.ChatComplet
 	})
 
 	payload := map[string]any{
-		"status":        "success",
-		"entity_type":   "model",
-		"entity_name":   o.modelName,
-		"summary":       summary,
-		"content":       completion.Content,
-		"tool_calls":    completion.ToolCalls,
-		"raw_response":  completion.RawResponse,
-		"parse_ok":      parseOK,
-		"latency_ms":    completion.LatencyMs,
-		"finish_reason": completion.FinishReason,
-		"input_tokens":  completion.Usage.PromptTokens,
-		"output_tokens": completion.Usage.CompletionTokens,
-		"total_tokens":  completion.Usage.TotalTokens,
+		"status":             "success",
+		"summary":            summary,
+		"model_name":         o.modelName,
+		"content":            completion.Content,
+		"content_preview":    preview(completion.Content, 240),
+		"tool_calls":         completion.ToolCalls,
+		"tool_calls_summary": buildToolCallSummary(completion.ToolCalls),
+		"raw_response":       completion.RawResponse,
+		"parse_ok":           parseOK,
+		"latency_ms":         completion.LatencyMs,
+		"finish_reason":      completion.FinishReason,
+		"input_tokens":       completion.Usage.PromptTokens,
+		"output_tokens":      completion.Usage.CompletionTokens,
+		"total_tokens":       completion.Usage.TotalTokens,
 	}
 	if parseErr != nil {
 		payload["parse_error"] = parseErr.Error()
 	}
 
-	o.lastSpanID = o.modelAttempt.spanID
-	o.lastEventID = o.trace.Record(step, agent.EventModelReturned, o.modelAttempt.eventID, payload)
+	o.trace.Record(step, agent.EventModelReturned, "", payload)
 	o.modelAttempt = nil
 }
 
 // ToolStarted 记录一次工具调用开始事件，并打开对应 span。
 func (o *traceObserver) ToolStarted(step int, name string, args string, toolCallID string) {
-	spanID := o.trace.StartSpan(step, agent.SpanToolCall, o.lastSpanID, map[string]any{
-		"entity_type": "tool",
-		"entity_name": name,
-		"status":      "started",
-		"summary":     "开始调用工具",
+	spanID := o.trace.StartSpan(step, agent.SpanToolCall, "", map[string]any{
+		"tool_name": name,
+		"status":    "started",
+		"summary":   "开始调用工具",
 	})
 
-	eventID := o.trace.Record(step, agent.EventToolCalled, o.lastEventID, map[string]any{
-		"status":        "started",
-		"entity_type":   "tool",
-		"entity_name":   name,
-		"summary":       "开始调用工具",
-		"tool_name":     name,
-		"tool_call_id":  toolCallID,
-		"arguments":     tryDecodeJSON(args),
-		"arguments_raw": args,
+	o.trace.Record(step, agent.EventToolCalled, "", map[string]any{
+		"status":            "started",
+		"summary":           "开始调用工具",
+		"tool_name":         name,
+		"arguments":         tryDecodeJSON(args),
+		"arguments_raw":     args,
+		"arguments_summary": buildArgumentSummary(args),
 	})
 
 	o.toolAttempt = &toolAttempt{
 		spanID:     spanID,
-		eventID:    eventID,
 		toolName:   name,
 		toolCallID: toolCallID,
 	}
@@ -187,11 +174,8 @@ func (o *traceObserver) ToolFinished(step int, result tooling.CallResult, err er
 	resultSummary := buildToolResultSummary(result.Result)
 	payload := map[string]any{
 		"status":         status,
-		"entity_type":    "tool",
-		"entity_name":    o.toolAttempt.toolName,
 		"summary":        summary,
 		"tool_name":      o.toolAttempt.toolName,
-		"tool_call_id":   o.toolAttempt.toolCallID,
 		"latency_ms":     latencyMs,
 		"result_summary": resultSummary,
 	}
@@ -208,27 +192,24 @@ func (o *traceObserver) ToolFinished(step int, result tooling.CallResult, err er
 	}
 
 	o.trace.FinishSpan(o.toolAttempt.spanID, status, map[string]any{
-		"entity_type":    "tool",
-		"entity_name":    o.toolAttempt.toolName,
+		"tool_name":      o.toolAttempt.toolName,
 		"summary":        summary,
 		"error":          errorString(err),
 		"latency_ms":     latencyMs,
 		"result_summary": resultSummary,
 	})
 
-	o.lastSpanID = o.toolAttempt.spanID
-	o.lastEventID = o.trace.Record(step, agent.EventToolReturned, o.toolAttempt.eventID, payload)
+	o.trace.Record(step, agent.EventToolReturned, "", payload)
 	o.toolAttempt = nil
 }
 
-// RunFinished 记录本次运行成功完成。
-func (o *traceObserver) RunFinished(step int, output map[string]any) {
-	o.trace.Record(step, agent.EventRunFinished, o.lastEventID, map[string]any{
+// RunFinished 记录本次运行成功完成，并把最终计划状态一并写入 trace。
+func (o *traceObserver) RunFinished(step int, output map[string]any, planState any) {
+	o.trace.Record(step, agent.EventRunFinished, "", map[string]any{
 		"status":       "success",
-		"entity_type":  "run",
-		"entity_name":  "agent_run",
 		"summary":      "运行成功完成",
 		"final_output": output,
+		"plan_state":   planState,
 	})
 }
 
@@ -236,28 +217,23 @@ func (o *traceObserver) RunFinished(step int, output map[string]any) {
 func (o *traceObserver) RunFailed(step int, stage string, err error, extra map[string]any) {
 	if o.modelAttempt != nil {
 		o.trace.FinishSpan(o.modelAttempt.spanID, "error", map[string]any{
-			"entity_type": "model",
-			"entity_name": o.modelName,
-			"summary":     "模型调用失败",
-			"error":       err.Error(),
+			"model_name": o.modelName,
+			"summary":    "模型调用失败",
+			"error":      err.Error(),
 		})
-		o.lastSpanID = o.modelAttempt.spanID
-		o.lastEventID = o.modelAttempt.eventID
 		o.modelAttempt = nil
 	}
 
 	payload := map[string]any{
-		"status":      "error",
-		"entity_type": "run",
-		"entity_name": "agent_run",
-		"stage":       stage,
-		"error":       err.Error(),
-		"summary":     fmt.Sprintf("运行失败，阶段：%s", stage),
+		"status":  "error",
+		"stage":   stage,
+		"error":   err.Error(),
+		"summary": fmt.Sprintf("运行失败，阶段：%s", stage),
 	}
 	for k, v := range extra {
 		payload[k] = v
 	}
-	o.trace.Record(step, agent.EventRunFailed, o.lastEventID, payload)
+	o.trace.Record(step, agent.EventRunFailed, "", payload)
 }
 
 // Result 导出 observer 当前持有的 trace。
@@ -299,6 +275,32 @@ func buildToolResultSummary(result any) map[string]any {
 			"result_chars": len(b),
 		}
 	}
+}
+
+// buildToolCallSummary 为模型返回中的工具调用生成可读摘要。
+// summary 模式只依赖这份精简信息，不再要求前端先啃完整 tool_calls。
+func buildToolCallSummary(calls []agentllm.ToolCall) []map[string]any {
+	if len(calls) == 0 {
+		return nil
+	}
+
+	out := make([]map[string]any, 0, len(calls))
+	for _, call := range calls {
+		out = append(out, map[string]any{
+			"tool_name": call.Function.Name,
+		})
+	}
+	return out
+}
+
+// buildArgumentSummary 把工具参数压成适合 summary 模式展示的简单对象。
+// 这里只返回结构化后的简要参数，不保留原始字符串。
+func buildArgumentSummary(args string) any {
+	parsed := tryDecodeJSON(args)
+	if parsed == nil {
+		return preview(args, 200)
+	}
+	return parsed
 }
 
 // buildModelReturnSummary 生成一条可读性更好的模型返回摘要。

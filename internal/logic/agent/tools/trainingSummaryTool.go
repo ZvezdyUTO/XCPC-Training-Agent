@@ -86,7 +86,7 @@ func (t *TrainingSummaryTool) Call(ctx context.Context, input json.RawMessage) (
 	}
 
 	cfDist, acDist := applogic.BuildTrainingDistributions(res)
-	trainingValue := applogic.BuildTrainingValueSummary(res, records)
+	trainingValue := applogic.BuildTrainingValueSummary(res, records, fromTime, toTime)
 
 	return map[string]any{
 		"student_id":      args.StudentID,
