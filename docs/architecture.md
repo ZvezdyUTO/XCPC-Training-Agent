@@ -57,6 +57,25 @@ internal/logic/agent/
 - `service` 负责准备和装配。
 - `runtime` 负责运行和终止。
 
+## 当前工具集
+
+当前 Agent 工具列表被收敛为 4 个，避免工具面过宽导致提示和调用噪音过高：
+
+- `training_summary_range`
+- `student_contest_records`
+- `training_value_leaderboard`
+- `contest_ranking`
+
+其中：
+
+- 单人训练查询和训练价值排行榜复用同一套评分公式
+- 评分逻辑位于 `internal/logic`，不分散在 HTTP 和 Agent 两侧
+- Agent 工具只负责把业务能力暴露给模型，不重复实现评分规则
+
+工具详细说明见：
+
+- `docs/agent-tools.md`
+
 ## 执行流程
 
 一次 Agent 请求的执行流程如下：

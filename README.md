@@ -105,3 +105,4 @@ npm run dev
 
 - `docs/architecture.md`
 - `docs/api.md`
+- `docs/agent-tools.md`

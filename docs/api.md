@@ -47,6 +47,11 @@
 - `POST /v1/admin/users/create`
 - `DELETE /v1/admin/users/:id`
 - `POST /v1/admin/op/training/syncall`
+- `POST /v1/admin/op/training/syncone`
+- `GET /v1/admin/op/training/syncstate/list`
+- `GET /v1/admin/op/training/summary`
+- `GET /v1/admin/op/training/leaderboard`
+- `GET /v1/admin/op/contest/ranking`
 - `POST /v1/admin/agent/task/run`
 
 ## 公开接口
@@ -134,6 +139,13 @@
 约束：
 
 - 不允许删除当前登录用户自身
+- 不允许删除系统用户
+
+说明：
+
+- 按学号删除用户
+- 会硬删除该用户本身
+- 依赖数据库外键级联删除其比赛记录、训练记录和同步状态数据
 
 ### 数据同步
 
@@ -145,6 +157,119 @@
 
 - 遍历所有有效学生
 - 自动判断全量同步、区间同步或跳过
+
+成功响应重点：
+
+- `data.msg`
+- `data.success_cnt`
+- `data.success[].student_id`
+- `data.success[].mode`
+- `data.failed[].student_id`
+- `data.failed[].error`
+
+### `POST /v1/admin/op/training/syncone`
+
+触发单个学生的训练数据同步。
+
+请求体：
+
+```json
+{
+  "student_id": "230000001"
+}
+```
+
+返回重点：
+
+- `data.student_id`
+- `data.mode`：`full` / `range` / `skip`
+
+### `GET /v1/admin/op/training/syncstate/list`
+
+查询同步状态表。
+
+返回重点：
+
+- `data.count`
+- `data.list[].student_id`
+- `data.list[].is_fully_initialized`
+- `data.list[].latest_successful_date`
+
+### `GET /v1/admin/op/training/summary`
+
+查询单个学生在指定时间范围内的训练累计与训练价值评分。
+
+查询参数：
+
+- `student_id`
+- `from`
+- `to`
+
+成功响应重点：
+
+- `data.cf_total`
+- `data.cf_distribution`
+- `data.ac_total`
+- `data.ac_distribution`
+- `data.training_value`
+
+`data.training_value` 字段说明：
+
+- `scoring_version`：当前训练价值评分版本
+- `solved_total`：总题量
+- `score`：综合分
+- `volume_score`：题量分
+- `difficulty_score`：难度分
+- `challenge_score`：挑战分
+- `undefined_total` / `undefined_ratio`：未标难度题数量与占比
+- `cf_rating` / `ac_rating`：当前分、峰值分与能力参考线
+- `cf` / `ac`：分平台的题量、已知题、undefined 和分数拆解
+
+### `GET /v1/admin/op/training/leaderboard`
+
+查询指定时间范围内的训练价值排行榜。
+
+查询参数：
+
+- `from`
+- `to`
+- `top_n`
+
+成功响应重点：
+
+- `data.scoring_version`
+- `data.from`
+- `data.to`
+- `data.top_n`
+- `data.count`
+- `data.items[]`
+
+说明：
+
+- 排行榜与单人训练查询复用同一套评分公式
+- 评分同时考虑题量、难度和相对本人能力线的挑战价值
+- `undefined` 题会谨慎参与折扣估计，不直接按高难题处理
+
+### `GET /v1/admin/op/contest/ranking`
+
+查询某一场比赛在数据库中的队内排名。
+
+查询参数：
+
+- `platform`：`CF` 或 `AC`
+- `contest_id`
+
+成功响应重点：
+
+- `data.contest_name`
+- `data.contest_date`
+- `data.count`
+- `data.items[].student_id`
+- `data.items[].student_name`
+- `data.items[].rank`
+- `data.items[].old_rating`
+- `data.items[].new_rating`
+- `data.items[].rating_change`
 
 ### Agent 分析
 
@@ -292,6 +417,7 @@
 常见错误码：
 
 - `openai_config_missing`：缺少模型配置
+- `openai_base_url_invalid`：模型地址配置非法
 - `invalid_api_key`：模型 API Key 无效
 - `llm_request_failed`：模型请求失败
 - `llm_response_invalid_json`：模型响应不是合法 JSON
