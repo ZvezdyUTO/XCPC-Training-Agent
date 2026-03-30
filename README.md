@@ -5,14 +5,14 @@ XCPC-Training-Agent 是一个面向集训队训练管理的后端服务，提供
 - 同步 Codeforces / AtCoder 的训练与比赛数据
 - 基于 LLM 与本地工具输出结构化训练分析结果
 
-## Features
+## 功能概览
 
 - 用户与管理员权限体系
 - 训练数据自动同步
 - 基于原生 `tools / tool_calls` 的 Agent 分析
 - Docker Compose 本地部署
 
-## Tech Stack
+## 技术栈
 
 - Go + Gin
 - GORM + MySQL
@@ -21,9 +21,9 @@ XCPC-Training-Agent 是一个面向集训队训练管理的后端服务，提供
 - React + Vite coach frontend
 - Docker Compose
 
-## Quick Start
+## 快速开始
 
-### 1. Configure environment
+### 1. 配置环境
 
 启动前请配置模型访问参数。当前 Agent 要求模型服务支持 OpenAI-compatible chat completions 与原生 `tool_calls`。
 
@@ -40,7 +40,7 @@ XCPC-Training-Agent 是一个面向集训队训练管理的后端服务，提供
 - `DASHSCOPE_API_KEY`
 - `DASHSCOPE_BASE_URL`
 
-### 2. Start services
+### 2. 启动服务
 
 确保仓库内存在 `sql/init.sql`，随后执行：
 
@@ -54,52 +54,32 @@ docker compose up -d
 - Frontend: `http://localhost:5173`
 - MySQL: `127.0.0.1:3307`
 
-### 3. Default admin account
+### 3. 默认管理员账号
 
 系统初始化后会创建默认管理员：
 
 - Username: `20001`
 - Password: `000000`
 
-## Common Usage
+## 使用方式
 
-### Login
+推荐直接使用教练端前端，不再需要手动调用 `curl`。
 
-```bash
-curl -s http://localhost:8888/v1/user/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"20001","password":"000000"}'
-```
+使用流程：
 
-### Create users
+1. 打开浏览器访问 `http://localhost:5173`
+2. 使用默认管理员登录
+   - Username: `20001`
+   - Password: `000000`
+3. 在总览页触发训练同步，并查看同步结果和同步状态表
+4. 在学生页批量导入学生、预览导入内容并查看学生列表
+5. 在 Agent 页发起自然语言分析、查看 Trace、查询某场比赛的队内排名
 
-```bash
-curl -s http://localhost:8888/v1/admin/users/create \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer <TOKEN>' \
-  -d '{"users":[{"id":"<示例学号>","name":"<示例姓名>","password":"<默认密码>","cf_handle":"<CF_HANDLE>","ac_handle":"<AC_HANDLE>"}]}'
-```
+如果需要查看接口明细或调试 API，请参考：
 
-### Sync training data
+- `docs/api.md`
 
-```bash
-curl -s http://localhost:8888/v1/admin/op/training/syncall \
-  -H 'Authorization: Bearer <TOKEN>'
-```
-
-### Run agent
-
-```bash
-curl -s http://localhost:8888/v1/admin/agent/task/run \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer <TOKEN>' \
-  -d '{
-    "task": "分析学号为 <示例学号> 的学生近期训练情况",
-    "trace_mode": "summary"
-  }'
-```
-
-## Frontend
+## 前端说明
 
 教练端前端位于 [frontend/package.json](/home/zvezdyuto/GolandProjects/XCPC-Training-Agent/frontend/package.json)，与后端代码独立维护。
 
@@ -121,17 +101,7 @@ npm run dev
 - `docker compose up -d --build`
 - 浏览器访问 `http://localhost:5173`
 
-## Repository Layout
-
-```text
-internal/
-  handler/    HTTP 接口与定时任务入口
-  logic/      业务编排
-  model/      数据访问
-  crawler/    Python 爬虫调用
-```
-
-## Documentation
+## 文档
 
 - `docs/architecture.md`
 - `docs/api.md`
