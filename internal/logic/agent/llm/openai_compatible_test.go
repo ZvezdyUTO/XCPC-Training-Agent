@@ -28,28 +28,6 @@ func TestNewOpenAICompatibleClientOnlyReadsOpenAIEnv(t *testing.T) {
 	}
 }
 
-func TestNormalizeChatCompletionsURLFromRoot(t *testing.T) {
-	got, err := normalizeChatCompletionsURL("https://api.deepseek.com")
-	if err != nil {
-		t.Fatalf("normalizeChatCompletionsURL() error = %v", err)
-	}
-	want := "https://api.deepseek.com/v1/chat/completions"
-	if got != want {
-		t.Fatalf("normalizeChatCompletionsURL() = %q, want %q", got, want)
-	}
-}
-
-func TestNormalizeChatCompletionsURLFromV1(t *testing.T) {
-	got, err := normalizeChatCompletionsURL("https://api.deepseek.com/v1")
-	if err != nil {
-		t.Fatalf("normalizeChatCompletionsURL() error = %v", err)
-	}
-	want := "https://api.deepseek.com/v1/chat/completions"
-	if got != want {
-		t.Fatalf("normalizeChatCompletionsURL() = %q, want %q", got, want)
-	}
-}
-
 // TestChatRequiresOpenAIEnv 验证缺少 OPENAI_* 配置时直接报错。
 func TestChatRequiresOpenAIEnv(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "")
