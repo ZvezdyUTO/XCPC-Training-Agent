@@ -36,5 +36,3 @@ venv/
 .codex
 
 AGENTS.md
-
-docker-compose.yml
