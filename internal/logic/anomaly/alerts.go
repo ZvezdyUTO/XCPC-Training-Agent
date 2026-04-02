@@ -55,6 +55,10 @@ func (s *service) ResolveAlert(ctx context.Context, id int64) error {
 	return s.alerts.UpdateStatus(ctx, id, model.AlertStatusResolved)
 }
 
+func (s *service) ResolveAllAlerts(ctx context.Context) (int64, error) {
+	return s.alerts.ResolveAllUnresolved(ctx)
+}
+
 func buildAlertListQuery(req *domain.AdminAlertListReq) (*model.TrainingAlertListQuery, error) {
 	query := &model.TrainingAlertListQuery{
 		StudentID: req.StudentID,

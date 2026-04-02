@@ -14,8 +14,8 @@ func (s *service) detectInactiveDays(
 	asOf time.Time,
 ) (*model.TrainingAlert, bool, error) {
 	cfg := s.getConfig()
-	inactiveDays := cfg.InactiveDaysThreshold
-	currentFrom := asOf.AddDate(0, 0, -(inactiveDays - 1))
+	maxDays := cfg.InactiveDaysHighThreshold
+	currentFrom := asOf.AddDate(0, 0, -(maxDays - 1))
 	currentTo := asOf
 
 	records, err := s.daily.FindRange(ctx, studentID, currentFrom, currentTo)
@@ -23,12 +23,33 @@ func (s *service) detectInactiveDays(
 		return nil, false, fmt.Errorf("加载连续停训窗口训练数据失败: %w", err)
 	}
 
-	currentTotal := sumTotalSolved(records)
-	if currentTotal > 0 {
+	byDate := make(map[string]*model.DailyTrainingStats, len(records))
+	for _, item := range records {
+		if item == nil {
+			continue
+		}
+		byDate[item.StatDate.Format(time.DateOnly)] = item
+	}
+
+	inactiveDays := 0
+	for i := 0; i < maxDays; i++ {
+		day := asOf.AddDate(0, 0, -i).Format(time.DateOnly)
+		stat := byDate[day]
+		total := 0
+		if stat != nil {
+			total = stat.CFNewTotal + stat.ACNewTotal
+		}
+		if total > 0 {
+			break
+		}
+		inactiveDays++
+	}
+	if inactiveDays < cfg.InactiveDaysThreshold {
 		return nil, false, nil
 	}
 
-	baselineTo := currentFrom.AddDate(0, 0, -1)
+	effectiveFrom := asOf.AddDate(0, 0, -(inactiveDays - 1))
+	baselineTo := effectiveFrom.AddDate(0, 0, -1)
 	baselineFrom := baselineTo.AddDate(0, 0, -(cfg.BaselineWindowDays - 1))
 	baselineStats, err := s.daily.SumRange(ctx, studentID, baselineFrom, baselineTo)
 	if err != nil {
@@ -45,20 +66,25 @@ func (s *service) detectInactiveDays(
 	}
 
 	severity := model.AlertSeverityLow
-	if inactiveDays >= 7 {
+	if inactiveDays >= cfg.InactiveDaysHighThreshold {
 		severity = model.AlertSeverityHigh
-	} else if inactiveDays >= 5 {
+	} else if inactiveDays >= cfg.InactiveDaysMediumThreshold {
 		severity = model.AlertSeverityMedium
 	}
 
 	evidence, _ := json.Marshal(map[string]any{
 		"metric": "inactive_days",
 		"current_window": map[string]string{
-			"from": currentFrom.Format(time.DateOnly),
+			"from": effectiveFrom.Format(time.DateOnly),
 			"to":   currentTo.Format(time.DateOnly),
 		},
-		"inactive_days":      inactiveDays,
-		"current_total":      currentTotal,
+		"inactive_days": inactiveDays,
+		"current_total": 0,
+		"thresholds": map[string]int{
+			"low_days":    cfg.InactiveDaysThreshold,
+			"medium_days": cfg.InactiveDaysMediumThreshold,
+			"high_days":   cfg.InactiveDaysHighThreshold,
+		},
 		"baseline_avg_daily": round2(baselineAvg),
 		"baseline_window": map[string]string{
 			"from": baselineFrom.Format(time.DateOnly),

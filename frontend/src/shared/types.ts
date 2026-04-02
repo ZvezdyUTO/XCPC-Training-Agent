@@ -63,6 +63,7 @@ export interface SyncAllTrainingPayload {
     student_id: string;
     mode: string;
   }>;
+  alert_cnt?: number;
   failed_cnt?: number;
   failed?: Array<{
     student_id: string;
@@ -75,6 +76,71 @@ export interface SyncOneTrainingPayload {
   msg: string;
   student_id: string;
   mode: string;
+  alert_cnt?: number;
+}
+
+/** DetectRunPayload 表示手动触发异常检测接口返回。 */
+export interface DetectRunPayload {
+  msg: string;
+  alert_cnt: number;
+  detected_at: string;
+}
+
+/** AnomalyRuleConfig 表示异常检测规则参数。 */
+export interface AnomalyRuleConfig {
+  current_window_days: number;
+  baseline_window_days: number;
+  baseline_min_daily: number;
+  current_min_daily_for_alert: number;
+  drop_low_threshold: number;
+  drop_medium_threshold: number;
+  drop_high_threshold: number;
+  inactive_days_threshold: number;
+  inactive_days_medium_threshold: number;
+  inactive_days_high_threshold: number;
+  inactive_baseline_min_daily: number;
+  difficulty_drop_current_window_days: number;
+  difficulty_drop_medium_days_threshold: number;
+  difficulty_drop_high_days_threshold: number;
+  difficulty_drop_baseline_window_days: number;
+  difficulty_drop_min_current_total: number;
+  difficulty_drop_min_baseline_high_ratio: number;
+  difficulty_level_round_base: number;
+  difficulty_relative_high_delta: number;
+  difficulty_relative_easy_delta: number;
+  difficulty_drop_low_threshold: number;
+  difficulty_drop_medium_threshold: number;
+  difficulty_drop_high_threshold: number;
+}
+
+/** AnomalyRuleConfigPatch 表示规则参数的部分更新请求。 */
+export type AnomalyRuleConfigPatch = Partial<AnomalyRuleConfig>;
+
+/** AnomalyRuleConfigUpdatePayload 表示规则更新接口返回。 */
+export interface AnomalyRuleConfigUpdatePayload {
+  msg: string;
+  config: AnomalyRuleConfig;
+}
+
+/** TrainingAlertItem 表示单条训练异常预警。 */
+export interface TrainingAlertItem {
+  id: number;
+  student_id: string;
+  alert_date: string;
+  alert_type: string;
+  severity: "low" | "medium" | "high";
+  status: "new" | "ack" | "resolved";
+  title: string;
+  evidence: Record<string, unknown>;
+  actions: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+/** TrainingAlertsListPayload 表示预警列表响应。 */
+export interface TrainingAlertsListPayload {
+  count: number;
+  list: TrainingAlertItem[];
 }
 
 /** SyncStateItem 表示同步状态表中的单条记录。 */

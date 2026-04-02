@@ -7,6 +7,7 @@ const navItems = [
   { to: "/", label: "总览" },
   { to: "/students", label: "学生" },
   { to: "/query", label: "查询" },
+  { to: "/alerts", label: "预警" },
   { to: "/agent", label: "Agent" },
 ];
 

@@ -57,6 +57,7 @@
 - `GET /v1/admin/anomaly/config`
 - `POST /v1/admin/anomaly/config`
 - `GET /v1/admin/alerts/list`
+- `POST /v1/admin/alerts/resolve/all`
 - `POST /v1/admin/alerts/:id/ack`
 - `POST /v1/admin/alerts/:id/resolve`
 - `POST /v1/admin/agent/task/run`
@@ -330,17 +331,24 @@
 - `data.drop_medium_threshold`
 - `data.drop_high_threshold`
 - `data.inactive_days_threshold`
+- `data.inactive_days_medium_threshold`
+- `data.inactive_days_high_threshold`
 - `data.inactive_baseline_min_daily`
 - `data.difficulty_drop_current_window_days`
-- `data.difficulty_drop_baseline_window_days`
+- `data.difficulty_drop_medium_days_threshold`
+- `data.difficulty_drop_high_days_threshold`
 - `data.difficulty_drop_min_current_total`
-- `data.difficulty_drop_min_baseline_high_ratio`
 - `data.difficulty_level_round_base`
 - `data.difficulty_relative_high_delta`
-- `data.difficulty_relative_easy_delta`
-- `data.difficulty_drop_low_threshold`
-- `data.difficulty_drop_medium_threshold`
-- `data.difficulty_drop_high_threshold`
+
+说明（高难题规则）：
+
+- 当前规则为“连续未达标”模式，不再与历史占比做对比。
+- `difficulty_drop_current_window_days`：连续多少天未达标触发。
+- `difficulty_drop_medium_days_threshold`：连续多少天未达标触发 medium。
+- `difficulty_drop_high_days_threshold`：连续多少天未达标触发 high。
+- `difficulty_drop_min_current_total`：单日高难题达标阈值（低于该值记为未达标）。
+- `difficulty_level_round_base` 与 `difficulty_relative_high_delta`：用于按学生水平判定“高难题”。
 
 ### `POST /v1/admin/anomaly/config`
 
@@ -358,10 +366,14 @@
   "drop_medium_threshold": 0.5,
   "drop_high_threshold": 0.7,
   "inactive_days_threshold": 3,
+  "inactive_days_medium_threshold": 5,
+  "inactive_days_high_threshold": 7,
   "inactive_baseline_min_daily": 1.0,
-  "difficulty_drop_current_window_days": 7,
+  "difficulty_drop_current_window_days": 3,
+  "difficulty_drop_medium_days_threshold": 5,
+  "difficulty_drop_high_days_threshold": 7,
   "difficulty_drop_baseline_window_days": 30,
-  "difficulty_drop_min_current_total": 5,
+  "difficulty_drop_min_current_total": 1,
   "difficulty_drop_min_baseline_high_ratio": 0.15,
   "difficulty_level_round_base": 100,
   "difficulty_relative_high_delta": 200,
@@ -432,6 +444,15 @@
 
 - `:id` 为预警 ID
 - 成功返回统一 `success` 响应
+
+### `POST /v1/admin/alerts/resolve/all`
+
+一键将所有未处理预警（`new`、`ack`）标记为“已处理完成”。
+
+成功响应重点：
+
+- `data.msg`
+- `data.resolved_cnt`：本次批量处理的预警条数
 
 ### Agent 分析
 

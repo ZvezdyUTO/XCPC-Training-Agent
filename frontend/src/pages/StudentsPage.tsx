@@ -32,6 +32,8 @@ export function StudentsPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncResult, setSyncResult] = useState<SyncAllTrainingPayload | null>(null);
+  const [detectAfterSyncAll, setDetectAfterSyncAll] = useState(false);
+  const [detectAfterSyncOne, setDetectAfterSyncOne] = useState(false);
   const [syncingStudentID, setSyncingStudentID] = useState("");
   const [deletingStudentID, setDeletingStudentID] = useState("");
   const [rowSyncHint, setRowSyncHint] = useState<Record<string, string>>({});
@@ -108,9 +110,11 @@ export function StudentsPage() {
     setSyncMessage("");
     setSyncResult(null);
     try {
-      const payload = await api.syncAllTraining(user.token);
+      const payload = await api.syncAllTraining(user.token, {
+        detectAfterSync: detectAfterSyncAll,
+      });
       setSyncResult(payload);
-      setSyncMessage(`同步完成：成功 ${payload.success_cnt}${payload.failed_cnt ? `，失败 ${payload.failed_cnt}` : ""}`);
+      setSyncMessage(`同步完成：成功 ${payload.success_cnt}${payload.failed_cnt ? `，失败 ${payload.failed_cnt}` : ""}${detectAfterSyncAll ? `，预警新增/更新 ${payload.alert_cnt ?? 0}` : ""}`);
       await loadUsers(keyword);
     } catch (error) {
       setSyncMessage(error instanceof Error ? error.message : "同步触发失败");
@@ -130,10 +134,12 @@ export function StudentsPage() {
       [studentID]: "",
     }));
     try {
-      const payload = await api.syncOneTraining(user.token, studentID);
+      const payload = await api.syncOneTraining(user.token, studentID, {
+        detectAfterSync: detectAfterSyncOne,
+      });
       setRowSyncHint((prev) => ({
         ...prev,
-        [studentID]: payload.mode,
+        [studentID]: `${payload.mode}${detectAfterSyncOne ? `，预警 ${payload.alert_cnt ?? 0}` : ""}`,
       }));
       await loadUsers(keyword);
     } catch (error) {
@@ -199,6 +205,14 @@ export function StudentsPage() {
             <button className="primary-button" disabled={syncing} onClick={handleSyncAll} type="button">
               {syncing ? "同步中..." : "触发训练同步"}
             </button>
+            <label className="inline-check">
+              <input
+                type="checkbox"
+                checked={detectAfterSyncAll}
+                onChange={(event) => setDetectAfterSyncAll(event.target.checked)}
+              />
+              <span>同步后自动检测</span>
+            </label>
             {syncMessage ? <span className="helper-text">{syncMessage}</span> : null}
           </div>
 
@@ -216,6 +230,10 @@ export function StudentsPage() {
                 <div className="agent-meta-item">
                   <span>失败数量</span>
                   <strong>{syncResult.failed_cnt ?? 0}</strong>
+                </div>
+                <div className="agent-meta-item">
+                  <span>新增/更新预警数</span>
+                  <strong>{syncResult.alert_cnt ?? 0}</strong>
                 </div>
               </div>
 
@@ -337,6 +355,14 @@ export function StudentsPage() {
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />
+          <label className="inline-check">
+            <input
+              type="checkbox"
+              checked={detectAfterSyncOne}
+              onChange={(event) => setDetectAfterSyncOne(event.target.checked)}
+            />
+            <span>单人同步后检测</span>
+          </label>
           <button className="secondary-button" onClick={() => void loadUsers(keyword)} type="button">
             查询
           </button>

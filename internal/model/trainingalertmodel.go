@@ -15,6 +15,8 @@ type (
 		List(ctx context.Context, query *TrainingAlertListQuery) ([]*TrainingAlert, int64, error)
 		// UpdateStatus 更新单条预警状态。
 		UpdateStatus(ctx context.Context, id int64, status string) error
+		// ResolveAllUnresolved 把所有未完成预警（new/ack）批量更新为 resolved。
+		ResolveAllUnresolved(ctx context.Context) (int64, error)
 	}
 
 	defaultTrainingAlert struct {
@@ -105,4 +107,15 @@ func (m *defaultTrainingAlert) UpdateStatus(ctx context.Context, id int64, statu
 		WithContext(ctx).
 		Where("id = ?", id).
 		Update("status", status).Error
+}
+
+func (m *defaultTrainingAlert) ResolveAllUnresolved(ctx context.Context) (int64, error) {
+	tx := m.model().
+		WithContext(ctx).
+		Where("status IN ?", []string{AlertStatusNew, AlertStatusAck}).
+		Update("status", AlertStatusResolved)
+	if tx.Error != nil {
+		return 0, tx.Error
+	}
+	return tx.RowsAffected, nil
 }

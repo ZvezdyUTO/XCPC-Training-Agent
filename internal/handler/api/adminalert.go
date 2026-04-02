@@ -33,6 +33,7 @@ func (h *AdminAlert) InitRegister(engine *gin.Engine) {
 
 	gAlerts := engine.Group("v1/admin/alerts", h.svcCtx.JwtMid.Handler, h.svcCtx.AdminMid.Handler)
 	gAlerts.GET("/list", h.ListAlerts)
+	gAlerts.POST("/resolve/all", h.ResolveAllAlerts)
 	gAlerts.POST("/:id/ack", h.AckAlert)
 	gAlerts.POST("/:id/resolve", h.ResolveAlert)
 }
@@ -46,8 +47,8 @@ func (h *AdminAlert) RunDetect(ctx *gin.Context) {
 	}
 
 	httpx.OkWithData(ctx, gin.H{
-		"msg":        "success",
-		"alert_cnt":  cnt,
+		"msg":         "success",
+		"alert_cnt":   cnt,
 		"detected_at": time.Now().Format("2006-01-02 15:04:05"),
 	})
 }
@@ -127,4 +128,18 @@ func (h *AdminAlert) ResolveAlert(ctx *gin.Context) {
 	}
 
 	httpx.Ok(ctx)
+}
+
+// ResolveAllAlerts 一键将所有未处理预警标记为已处理完成。
+func (h *AdminAlert) ResolveAllAlerts(ctx *gin.Context) {
+	cnt, err := h.anomaly.ResolveAllAlerts(ctx.Request.Context())
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
+	httpx.OkWithData(ctx, gin.H{
+		"msg":          "success",
+		"resolved_cnt": cnt,
+	})
 }

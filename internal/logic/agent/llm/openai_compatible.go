@@ -84,6 +84,10 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 	if err := validateBaseURL(c.baseURL); err != nil {
 		return nil, err
 	}
+	endpoint, err := normalizeChatCompletionsURL(c.baseURL)
+	if err != nil {
+		return nil, err
+	}
 
 	body := map[string]any{
 		"model":    c.model,
@@ -111,7 +115,7 @@ func (c *OpenAICompatibleClient) Chat(ctx context.Context, req ChatRequest) (*Ch
 	httpReq, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		c.baseURL,
+		endpoint,
 		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
@@ -190,6 +194,30 @@ func validateBaseURL(raw string) error {
 	return nil
 }
 
+// normalizeChatCompletionsURL 兼容 OPENAI_BASE_URL 的常见写法：
+// 1) 直接填到 /v1/chat/completions（原样使用）
+// 2) 只填到域名（自动补 /v1/chat/completions）
+// 3) 填到 /v1（自动补 /chat/completions）
+func normalizeChatCompletionsURL(raw string) (string, error) {
+	parsed, err := url.ParseRequestURI(raw)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return "", apperr.New(apperr.KindConfig, "openai_base_url_invalid", "OPENAI_BASE_URL 配置非法", 500)
+	}
+
+	path := strings.TrimSuffix(parsed.Path, "/")
+	switch {
+	case path == "":
+		parsed.Path = "/v1/chat/completions"
+	case strings.HasSuffix(path, "/chat/completions"):
+		parsed.Path = path
+	case strings.HasSuffix(path, "/v1"):
+		parsed.Path = path + "/chat/completions"
+	default:
+		parsed.Path = path + "/chat/completions"
+	}
+	return parsed.String(), nil
+}
+
 // normalizeMessage 将 provider 原始消息格式统一成内部 Message 结构。
 // 这里按当前 OpenAI Chat Completions 协议做严格解析，异常形态直接报错。
 func normalizeMessage(msg responseMessage) (Message, error) {
@@ -254,6 +282,7 @@ func buildProviderError(statusCode int, respBody []byte) error {
 	httpStatus := http.StatusBadGateway
 	code := "llm_upstream_error"
 	message := fmt.Sprintf("LLM 请求失败，状态码=%d", statusCode)
+	parsedProviderMessage := false
 
 	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
 		kind = apperr.KindUser
@@ -267,6 +296,12 @@ func buildProviderError(statusCode int, respBody []byte) error {
 		}
 		if providerMessage := strings.TrimSpace(payload.Error.Message); providerMessage != "" {
 			message = providerMessage
+			parsedProviderMessage = true
+		}
+	}
+	if !parsedProviderMessage {
+		if snippet := compactResponseSnippet(respBody); snippet != "" {
+			message = fmt.Sprintf("%s，上游返回：%s", message, snippet)
 		}
 	}
 
@@ -283,4 +318,21 @@ func normalizeProviderCode(raw any) string {
 	default:
 		return strings.TrimSpace(fmt.Sprint(v))
 	}
+}
+
+func compactResponseSnippet(respBody []byte) string {
+	if len(respBody) == 0 {
+		return ""
+	}
+	raw := strings.TrimSpace(string(respBody))
+	if raw == "" {
+		return ""
+	}
+	// 把换行和多空格压成单空格，避免前端提示过长难读。
+	normalized := strings.Join(strings.Fields(raw), " ")
+	const maxLen = 220
+	if len(normalized) > maxLen {
+		return normalized[:maxLen] + "..."
+	}
+	return normalized
 }

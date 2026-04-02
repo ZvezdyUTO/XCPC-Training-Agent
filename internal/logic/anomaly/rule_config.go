@@ -73,7 +73,8 @@ func (s *service) loadRuleConfigIfExists(ctx context.Context) error {
 		return fmt.Errorf("加载异常规则配置失败: %w", err)
 	}
 
-	var cfg RuleConfig
+	// 先用默认值兜底，再覆盖数据库中的已保存字段，保证旧版本配置也能平滑升级。
+	cfg := defaultRuleConfig()
 	if err := json.Unmarshal(stored.ConfigJSON, &cfg); err != nil {
 		return fmt.Errorf("解析异常规则配置失败: %w", err)
 	}
@@ -132,11 +133,23 @@ func mergeRuleConfigPatch(dst *RuleConfig, patch RuleConfigPatch) {
 	if patch.InactiveDaysThreshold != nil {
 		dst.InactiveDaysThreshold = *patch.InactiveDaysThreshold
 	}
+	if patch.InactiveDaysMediumThreshold != nil {
+		dst.InactiveDaysMediumThreshold = *patch.InactiveDaysMediumThreshold
+	}
+	if patch.InactiveDaysHighThreshold != nil {
+		dst.InactiveDaysHighThreshold = *patch.InactiveDaysHighThreshold
+	}
 	if patch.InactiveBaselineMinDaily != nil {
 		dst.InactiveBaselineMinDaily = *patch.InactiveBaselineMinDaily
 	}
 	if patch.DifficultyDropCurrentWindowDays != nil {
 		dst.DifficultyDropCurrentWindowDays = *patch.DifficultyDropCurrentWindowDays
+	}
+	if patch.DifficultyDropMediumDaysThreshold != nil {
+		dst.DifficultyDropMediumDaysThreshold = *patch.DifficultyDropMediumDaysThreshold
+	}
+	if patch.DifficultyDropHighDaysThreshold != nil {
+		dst.DifficultyDropHighDaysThreshold = *patch.DifficultyDropHighDaysThreshold
 	}
 	if patch.DifficultyDropBaselineWindowDays != nil {
 		dst.DifficultyDropBaselineWindowDays = *patch.DifficultyDropBaselineWindowDays

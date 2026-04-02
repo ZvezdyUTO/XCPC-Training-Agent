@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { useAuth } from "../features/auth/AuthContext";
 import { AgentPage } from "../pages/AgentPage";
+import { AlertsPage } from "../pages/AlertsPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LoginPage } from "../pages/LoginPage";
 import { QueryPage } from "../pages/QueryPage";
@@ -34,6 +35,7 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="students" element={<StudentsPage />} />
         <Route path="query" element={<QueryPage />} />
+        <Route path="alerts" element={<AlertsPage />} />
         <Route path="agent" element={<AgentPage />} />
       </Route>
       <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />

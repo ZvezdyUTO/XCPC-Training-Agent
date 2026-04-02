@@ -22,6 +22,7 @@ type Service interface {
 	ListAlerts(ctx context.Context, req *domain.AdminAlertListReq) (*domain.AdminAlertListResp, error)
 	AckAlert(ctx context.Context, id int64) error
 	ResolveAlert(ctx context.Context, id int64) error
+	ResolveAllAlerts(ctx context.Context) (int64, error)
 	GetRuleConfig(ctx context.Context) RuleConfig
 	UpdateRuleConfig(ctx context.Context, cfg RuleConfig) error
 	PatchRuleConfig(ctx context.Context, patch RuleConfigPatch) (RuleConfig, error)
