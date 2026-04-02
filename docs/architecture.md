@@ -59,12 +59,13 @@ internal/logic/agent/
 
 ## 当前工具集
 
-当前 Agent 工具列表被收敛为 4 个，避免工具面过宽导致提示和调用噪音过高：
+当前 Agent 工具列表被收敛为 5 个，避免工具面过宽导致提示和调用噪音过高：
 
 - `training_summary_range`
 - `student_contest_records`
 - `training_value_leaderboard`
 - `contest_ranking`
+- `training_alerts_list`
 
 其中：
 

@@ -3,11 +3,13 @@ FROM golang:1.26-alpine
 WORKDIR /app
 
 RUN apk add --no-cache git python3 py3-pip
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+#RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 CMD ["go", "run", "main.go", "-f", "./etc/local/api.yaml"]

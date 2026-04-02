@@ -33,4 +33,6 @@ __pycache__/
 .venv/
 venv/
 
+.codex
+
 AGENTS.md

@@ -1,6 +1,7 @@
 package task
 
 import (
+	anomalylogic "aATA/internal/logic/anomaly"
 	"aATA/internal/logic/student_data"
 	"aATA/internal/svc"
 	"aATA/pkg/logx"
@@ -13,6 +14,7 @@ import (
 type DailyTrainingSync struct {
 	svc      *svc.ServiceContext
 	training student_data.TrainingLogic
+	anomaly  anomalylogic.Service
 	loc      *time.Location
 }
 
@@ -27,7 +29,8 @@ func NewDailyTrainingSync(svc *svc.ServiceContext, loc *time.Location) *DailyTra
 			svc.Crawler,
 			loc,
 		),
-		loc: loc,
+		anomaly: svc.AnomalyService,
+		loc:     loc,
 	}
 }
 
@@ -58,5 +61,19 @@ func (s *DailyTrainingSync) getData(ctx context.Context) error {
 	if err := s.training.SyncAllUsers(ctx); err != nil {
 		return err
 	}
+
+	if s.anomaly != nil {
+		cnt, err := s.anomaly.DetectAllUsers(ctx, time.Now().In(s.loc))
+		if err != nil {
+			logx.Errors(ctx, "task", "daily_anomaly_detect_failed", logx.Fields{
+				"error": err.Error(),
+			})
+		} else {
+			logx.Infos(ctx, "task", "daily_anomaly_detect_success", logx.Fields{
+				"alert_cnt": cnt,
+			})
+		}
+	}
+
 	return nil
 }

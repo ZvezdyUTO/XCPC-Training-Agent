@@ -119,3 +119,41 @@ CREATE TABLE student_sync_state
             REFERENCES users (id)
             ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE training_alerts
+(
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    student_id    VARCHAR(32)  NOT NULL,
+    alert_date    DATE         NOT NULL,
+    alert_type    VARCHAR(32)  NOT NULL,
+    severity      ENUM('low', 'medium', 'high') NOT NULL,
+    status        ENUM('new', 'ack', 'resolved') NOT NULL DEFAULT 'new',
+    title         VARCHAR(255) NOT NULL,
+    evidence_json JSON         NOT NULL,
+    actions_json  JSON         NOT NULL,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    CONSTRAINT fk_alert_user
+        FOREIGN KEY (student_id)
+            REFERENCES users (id)
+            ON DELETE CASCADE,
+
+    UNIQUE KEY uk_alert_unique (student_id, alert_date, alert_type),
+    INDEX idx_alert_date (alert_date),
+    INDEX idx_alert_status (status),
+    INDEX idx_alert_severity (severity),
+    INDEX idx_alert_student_date (student_id, alert_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE anomaly_rule_config
+(
+    id          TINYINT      NOT NULL,
+    config_json JSON         NOT NULL,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

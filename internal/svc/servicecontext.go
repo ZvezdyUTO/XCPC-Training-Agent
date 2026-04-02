@@ -4,6 +4,7 @@ import (
 	"aATA/internal/config"
 	"aATA/internal/crawler"
 	applogic "aATA/internal/logic"
+	anomalylogic "aATA/internal/logic/anomaly"
 	agentllm "aATA/internal/logic/agent/llm"
 	"aATA/internal/logic/agent/tooling"
 	"aATA/internal/logic/agent/tools"
@@ -26,6 +27,8 @@ type Models struct {
 	ContestModel          model.ContestRecordModel
 	DailyModel            model.DailyTrainingStatsModel
 	StudentSyncStateModel model.StudentSyncStateModel
+	TrainingAlertModel    model.TrainingAlertModel
+	AnomalyRuleConfigModel model.AnomalyRuleConfigModel
 }
 
 // Infra 收拢与业务无关的基础设施依赖。
@@ -49,6 +52,11 @@ type AgentDeps struct {
 	StudentContestRecordsTool    tooling.Tool
 	TrainingValueLeaderboardTool tooling.Tool
 	ContestRankingTool           tooling.Tool
+	TrainingAlertsTool           tooling.Tool
+}
+
+type AnomalyDeps struct {
+	AnomalyService anomalylogic.Service
 }
 
 // ServiceContext 是应用层依赖的轻量装配入口。
@@ -61,6 +69,7 @@ type ServiceContext struct {
 	Infra
 	MiddlewareSet
 	AgentDeps
+	AnomalyDeps
 }
 
 func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, error) {
@@ -73,6 +82,7 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 	infra := newInfra(c)
 	middlewareSet := newMiddlewareSet(infra.JWT)
 	agentDeps := newAgentDeps(models)
+	anomalyDeps := newAnomalyDeps(models)
 
 	res := &ServiceContext{
 		ctx:           ctx,
@@ -81,6 +91,7 @@ func NewServiceContext(ctx context.Context, c config.Config) (*ServiceContext, e
 		Infra:         infra,
 		MiddlewareSet: middlewareSet,
 		AgentDeps:     agentDeps,
+		AnomalyDeps:   anomalyDeps,
 	}
 
 	return res, initServer(res)
@@ -92,6 +103,8 @@ func newModels(db *gorm.DB) Models {
 		ContestModel:          model.NewContestRecordModel(db),
 		DailyModel:            model.NewDailyTrainingStatsModel(db),
 		StudentSyncStateModel: model.NewStudentSyncStateModel(db),
+		TrainingAlertModel:    model.NewTrainingAlertModel(db),
+		AnomalyRuleConfigModel: model.NewAnomalyRuleConfigModel(db),
 	}
 }
 
@@ -130,6 +143,19 @@ func newAgentDeps(models Models) AgentDeps {
 		StudentContestRecordsTool:    tools.NewStudentContestRecordsTool(models.ContestModel),
 		TrainingValueLeaderboardTool: tools.NewTrainingValueLeaderboardTool(leaderboardLogic),
 		ContestRankingTool:           tools.NewContestRankingTool(models.ContestModel, models.UsersModel),
+		TrainingAlertsTool:           tools.NewTrainingAlertsTool(models.TrainingAlertModel),
+	}
+}
+
+func newAnomalyDeps(models Models) AnomalyDeps {
+	return AnomalyDeps{
+		AnomalyService: anomalylogic.New(
+			models.UsersModel,
+			models.DailyModel,
+			models.ContestModel,
+			models.TrainingAlertModel,
+			models.AnomalyRuleConfigModel,
+		),
 	}
 }
 

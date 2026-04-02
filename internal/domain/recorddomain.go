@@ -7,9 +7,10 @@ type SyncStudentItem struct {
 }
 
 // AdminSyncOneTrainingReq 描述管理员触发单个学生训练同步的请求。
-// 这里只接收明确的 student_id，不额外支持批量或模糊匹配。
+// 可选 detect_after_sync=true 表示同步完成后立即触发一次异常检测。
 type AdminSyncOneTrainingReq struct {
-	StudentID string `json:"student_id" binding:"required"`
+	StudentID       string `json:"student_id" binding:"required"`
+	DetectAfterSync bool   `json:"detect_after_sync"`
 }
 
 type AdminSyncTrainingReq struct {

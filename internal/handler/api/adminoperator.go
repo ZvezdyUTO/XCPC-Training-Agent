@@ -3,9 +3,11 @@ package api
 import (
 	"aATA/internal/domain"
 	applogic "aATA/internal/logic"
+	anomalylogic "aATA/internal/logic/anomaly"
 	"aATA/internal/logic/student_data"
 	"aATA/internal/model"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,17 +20,20 @@ type AdminOperator struct {
 	svcCtx      *svc.ServiceContext
 	training    student_data.TrainingLogic
 	leaderboard applogic.TrainingLeaderboard
+	anomaly     anomalylogic.Service
 }
 
 func NewAdminOperator(
 	svcCtx *svc.ServiceContext,
 	training student_data.TrainingLogic,
 	leaderboard applogic.TrainingLeaderboard,
+	anomaly anomalylogic.Service,
 ) *AdminOperator {
 	return &AdminOperator{
 		svcCtx:      svcCtx,
 		training:    training,
 		leaderboard: leaderboard,
+		anomaly:     anomaly,
 	}
 }
 
@@ -37,6 +42,7 @@ func (h *AdminOperator) InitRegister(engine *gin.Engine) {
 	g := engine.Group("v1/admin/op", h.svcCtx.JwtMid.Handler, h.svcCtx.AdminMid.Handler)
 	g.POST("/training/syncall", h.SyncAllTraining)
 	g.POST("/training/syncone", h.SyncOneTraining)
+	g.POST("/training/detect/run", h.RunTrainingDetect)
 	g.GET("/training/syncstate/list", h.ListTrainingSyncState)
 	g.GET("/training/summary", h.GetTrainingSummaryRange)
 	g.GET("/training/leaderboard", h.GetTrainingLeaderboard)
@@ -45,6 +51,14 @@ func (h *AdminOperator) InitRegister(engine *gin.Engine) {
 
 // SyncAllTraining 检查所有学生的 sync 状态，并自动决定全量或范围更新
 func (h *AdminOperator) SyncAllTraining(ctx *gin.Context) {
+	var req struct {
+		DetectAfterSync bool `json:"detect_after_sync"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
 	users, _, err := h.svcCtx.UsersModel.List(ctx.Request.Context(), &domain.UserListReq{})
 	if err != nil {
 		httpx.FailWithErr(ctx, err)
@@ -87,11 +101,21 @@ func (h *AdminOperator) SyncAllTraining(ctx *gin.Context) {
 		})
 	}
 
+	detectCnt := 0
+	if req.DetectAfterSync && h.anomaly != nil {
+		detectCnt, err = h.anomaly.DetectAllUsers(ctx.Request.Context(), time.Now())
+		if err != nil {
+			httpx.FailWithErr(ctx, err)
+			return
+		}
+	}
+
 	if len(failed) == 0 {
 		httpx.OkWithData(ctx, gin.H{
 			"msg":         "success",
 			"success_cnt": len(success),
 			"success":     success,
+			"alert_cnt":   detectCnt,
 		})
 		return
 	}
@@ -102,6 +126,7 @@ func (h *AdminOperator) SyncAllTraining(ctx *gin.Context) {
 		"success":     success,
 		"failed_cnt":  len(failed),
 		"failed":      failed,
+		"alert_cnt":   detectCnt,
 	})
 }
 
@@ -130,10 +155,40 @@ func (h *AdminOperator) SyncOneTraining(ctx *gin.Context) {
 		return
 	}
 
+	detectCnt := 0
+	if req.DetectAfterSync && h.anomaly != nil {
+		detectCnt, err = h.anomaly.DetectAllUsers(ctx.Request.Context(), time.Now())
+		if err != nil {
+			httpx.FailWithErr(ctx, err)
+			return
+		}
+	}
+
+	httpx.OkWithData(ctx, gin.H{
+		"msg":         "success",
+		"student_id":  req.StudentID,
+		"mode":        string(mode),
+		"alert_cnt":   detectCnt,
+	})
+}
+
+// RunTrainingDetect 手动触发一次训练异常检测（无需先执行同步）。
+func (h *AdminOperator) RunTrainingDetect(ctx *gin.Context) {
+	if h.anomaly == nil {
+		httpx.FailWithErr(ctx, errors.New("异常检测服务未初始化"))
+		return
+	}
+
+	cnt, err := h.anomaly.DetectAllUsers(ctx.Request.Context(), time.Now())
+	if err != nil {
+		httpx.FailWithErr(ctx, err)
+		return
+	}
+
 	httpx.OkWithData(ctx, gin.H{
 		"msg":        "success",
-		"student_id": req.StudentID,
-		"mode":       string(mode),
+		"alert_cnt":  cnt,
+		"detected_at": time.Now().Format("2006-01-02 15:04:05"),
 	})
 }
 
