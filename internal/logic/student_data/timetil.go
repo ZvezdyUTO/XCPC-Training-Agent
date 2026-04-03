@@ -31,7 +31,7 @@ func normalizeLocation(loc *time.Location) *time.Location {
 // 设计意图是每次回刷最近 5 天，覆盖平台延迟、补评测或补抓取导致的晚到数据。
 func repairSyncRange(latest time.Time, now time.Time, loc *time.Location) (time.Time, time.Time) {
 	baseLoc := normalizeLocation(loc)
-	to := dateOnly(now, baseLoc)
+	to := now.In(baseLoc)
 	from := dateOnly(latest.In(baseLoc).AddDate(0, 0, -repairLookbackDays), baseLoc)
 	return from, to
 }
@@ -46,7 +46,7 @@ func allHistoryRange(now time.Time, loc *time.Location) (time.Time, time.Time) {
 	from := time.Date(2009, 1, 1, 0, 0, 0, 0, loc)
 
 	// 今天 00:00
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	//today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 
-	return from, today
+	return from, now
 }

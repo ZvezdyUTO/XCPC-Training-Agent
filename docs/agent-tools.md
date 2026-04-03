@@ -2,12 +2,13 @@
 
 ## 概述
 
-当前 Agent 只注册 4 个工具，目标是把训练分析所需的核心查询能力收敛到最小闭环：
+当前 Agent 注册 5 个工具，目标是把训练分析与预警查询所需的核心能力收敛到最小闭环：
 
 - 单人训练记录查询
 - 单人比赛记录查询
 - 训练价值排行榜查询
 - 某场比赛队内排名查询
+- 训练异常预警列表查询
 
 对应注册位置在 [service.go](/home/zvezdyuto/GolandProjects/XCPC-Training-Agent/internal/logic/agent/service/service.go)。
 
@@ -130,6 +131,40 @@
 
 - 该工具面向“同一场比赛队内对比”
 - 不返回额外的分析性总结
+
+### `training_alerts_list`
+
+职责：
+
+- 查询训练异常预警列表
+- 支持按学生、状态、严重等级和日期范围过滤
+
+输入参数：
+
+- `student_id`：可选，学生学号
+- `status`：可选，`new` / `ack` / `resolved`
+- `severity`：可选，`low` / `medium` / `high`
+- `from`：可选，开始日期，格式 `2006-01-02`
+- `to`：可选，结束日期，格式 `2006-01-02`
+- `page`：可选，默认 `1`
+- `count`：可选，默认 `20`，最大 `100`
+
+输出重点：
+
+- `count`
+- `items[].id`
+- `items[].student_id`
+- `items[].alert_date`
+- `items[].alert_type`
+- `items[].severity`
+- `items[].status`
+- `items[].title`
+- `items[].evidence`
+- `items[].actions`
+
+说明：
+
+- 该工具只读取预警落库结果，不触发检测
 
 ## 评分口径
 

@@ -1,12 +1,17 @@
 import type {
+  AnomalyRuleConfig,
+  AnomalyRuleConfigPatch,
+  AnomalyRuleConfigUpdatePayload,
   AgentRunPayload,
   ApiEnvelope,
   BatchCreatePayload,
   ContestRankingPayload,
+  DetectRunPayload,
   LoginPayload,
   SyncAllTrainingPayload,
   SyncOneTrainingPayload,
   SyncStateListPayload,
+  TrainingAlertsListPayload,
   TrainingLeaderboardPayload,
   TrainingSummaryPayload,
   UserItem,
@@ -93,18 +98,27 @@ export const api = {
       token,
     });
   },
-  syncAllTraining(token: string) {
+  syncAllTraining(token: string, options?: { detectAfterSync?: boolean }) {
     return request<SyncAllTrainingPayload>("/v1/admin/op/training/syncall", {
       method: "POST",
       token,
-      body: {},
+      body: options?.detectAfterSync === undefined ? {} : { detect_after_sync: options.detectAfterSync },
     });
   },
-  syncOneTraining(token: string, studentID: string) {
+  syncOneTraining(token: string, studentID: string, options?: { detectAfterSync?: boolean }) {
     return request<SyncOneTrainingPayload>("/v1/admin/op/training/syncone", {
       method: "POST",
       token,
-      body: { student_id: studentID },
+      body: options?.detectAfterSync === undefined
+        ? { student_id: studentID }
+        : { student_id: studentID, detect_after_sync: options.detectAfterSync },
+    });
+  },
+  runTrainingDetect(token: string) {
+    return request<DetectRunPayload>("/v1/admin/op/training/detect/run", {
+      method: "POST",
+      token,
+      body: {},
     });
   },
   listSyncStates(token: string) {
@@ -154,6 +168,63 @@ export const api = {
         task,
         trace_mode: traceMode,
       },
+    });
+  },
+  getAnomalyConfig(token: string) {
+    return request<AnomalyRuleConfig>("/v1/admin/anomaly/config", {
+      token,
+    });
+  },
+  patchAnomalyConfig(token: string, patch: AnomalyRuleConfigPatch) {
+    return request<AnomalyRuleConfigUpdatePayload>("/v1/admin/anomaly/config", {
+      method: "POST",
+      token,
+      body: patch,
+    });
+  },
+  listTrainingAlerts(
+    token: string,
+    params: {
+      student_id?: string;
+      status?: string;
+      severity?: string;
+      from?: string;
+      to?: string;
+      page?: number;
+      count?: number;
+    },
+  ) {
+    const query = new URLSearchParams();
+    if (params.student_id) query.set("student_id", params.student_id);
+    if (params.status) query.set("status", params.status);
+    if (params.severity) query.set("severity", params.severity);
+    if (params.from) query.set("from", params.from);
+    if (params.to) query.set("to", params.to);
+    query.set("page", String(params.page ?? 1));
+    query.set("count", String(params.count ?? 20));
+    return request<TrainingAlertsListPayload>(`/v1/admin/alerts/list?${query.toString()}`, {
+      token,
+    });
+  },
+  ackTrainingAlert(token: string, alertID: number) {
+    return request<unknown>(`/v1/admin/alerts/${alertID}/ack`, {
+      method: "POST",
+      token,
+      body: {},
+    });
+  },
+  resolveTrainingAlert(token: string, alertID: number) {
+    return request<unknown>(`/v1/admin/alerts/${alertID}/resolve`, {
+      method: "POST",
+      token,
+      body: {},
+    });
+  },
+  resolveAllTrainingAlerts(token: string) {
+    return request<{ msg: string; resolved_cnt: number }>("/v1/admin/alerts/resolve/all", {
+      method: "POST",
+      token,
+      body: {},
     });
   },
 };

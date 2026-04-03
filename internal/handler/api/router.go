@@ -2,6 +2,7 @@ package api
 
 import (
 	"aATA/internal/logic"
+	anomalylogic "aATA/internal/logic/anomaly"
 	agentservice "aATA/internal/logic/agent/service"
 	"aATA/internal/logic/student_data"
 	"aATA/internal/svc"
@@ -24,6 +25,7 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 			loc,
 		)
 		agentLogic = agentservice.New(svc)
+		anomalySvc anomalylogic.Service = svc.AnomalyService
 	)
 
 	// 实例化 Handler，将创建好的 Logic 实例注入
@@ -31,8 +33,9 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 		userSelf   = NewUserSelf(svc, userLogic)
 		adminUser  = NewAdminUser(svc, userLogic)
 		userPublic = NewUserPublic(svc, userLogic)
-		adminOp    = NewAdminOperator(svc, trainingLogic, leaderboardLogic)
+		adminOp    = NewAdminOperator(svc, trainingLogic, leaderboardLogic, anomalySvc)
 		adminAgent = NewAdminAgent(svc, agentLogic)
+		adminAlert = NewAdminAlert(svc, anomalySvc)
 	)
 
 	// 将所有实例化的 Handler 放入切片中返回
@@ -43,5 +46,6 @@ func initHandler(svc *svc.ServiceContext) []Handler {
 		userPublic,
 		adminOp,
 		adminAgent,
+		adminAlert,
 	}
 }

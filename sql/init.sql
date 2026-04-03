@@ -119,3 +119,79 @@ CREATE TABLE student_sync_state
             REFERENCES users (id)
             ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE training_alerts
+(
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    student_id    VARCHAR(32)  NOT NULL,
+    alert_date    DATE         NOT NULL,
+    alert_type    VARCHAR(32)  NOT NULL,
+    severity      ENUM('low', 'medium', 'high') NOT NULL,
+    status        ENUM('new', 'ack', 'resolved') NOT NULL DEFAULT 'new',
+    title         VARCHAR(255) NOT NULL,
+    evidence_json JSON         NOT NULL,
+    actions_json  JSON         NOT NULL,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    CONSTRAINT fk_alert_user
+        FOREIGN KEY (student_id)
+            REFERENCES users (id)
+            ON DELETE CASCADE,
+
+    UNIQUE KEY uk_alert_unique (student_id, alert_date, alert_type),
+    INDEX idx_alert_date (alert_date),
+    INDEX idx_alert_status (status),
+    INDEX idx_alert_severity (severity),
+    INDEX idx_alert_student_date (student_id, alert_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE anomaly_rule_config
+(
+    id          TINYINT      NOT NULL,
+    config_json JSON         NOT NULL,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 初始化异常规则配置（id 固定为 1）。
+-- 关键约束：difficulty_drop_current_window_days <=
+--          difficulty_drop_medium_days_threshold <=
+--          difficulty_drop_high_days_threshold。
+INSERT INTO anomaly_rule_config (id, config_json)
+VALUES (
+    1,
+    JSON_OBJECT(
+        'current_window_days', 7,
+        'baseline_window_days', 30,
+        'baseline_min_daily', 1.0,
+        'current_min_daily_for_alert', 2.0,
+        'volume_recovery_ratio_1d', 0.80,
+        'drop_low_threshold', 0.35,
+        'drop_medium_threshold', 0.50,
+        'drop_high_threshold', 0.70,
+        'inactive_days_threshold', 3,
+        'inactive_days_medium_threshold', 5,
+        'inactive_days_high_threshold', 7,
+        'inactive_baseline_min_daily', 1.0,
+        'difficulty_drop_current_window_days', 3,
+        'difficulty_drop_medium_days_threshold', 5,
+        'difficulty_drop_high_days_threshold', 7,
+        'difficulty_drop_baseline_window_days', 30,
+        'difficulty_drop_min_current_total', 1,
+        'difficulty_drop_min_baseline_high_ratio', 0.15,
+        'difficulty_level_round_base', 100,
+        'difficulty_relative_high_delta', 200,
+        'difficulty_relative_easy_delta', 200,
+        'difficulty_drop_low_threshold', 0.35,
+        'difficulty_drop_medium_threshold', 0.50,
+        'difficulty_drop_high_threshold', 0.70
+    )
+)
+ON DUPLICATE KEY UPDATE
+    config_json = VALUES(config_json),
+    updated_at = CURRENT_TIMESTAMP;

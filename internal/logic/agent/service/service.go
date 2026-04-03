@@ -45,6 +45,7 @@ func (l *defaultService) RunTask(
 	tools.Register(l.svcCtx.StudentContestRecordsTool)
 	tools.Register(l.svcCtx.TrainingValueLeaderboardTool)
 	tools.Register(l.svcCtx.ContestRankingTool)
+	tools.Register(l.svcCtx.TrainingAlertsTool)
 
 	traceCollector := agentobserve.NewCollector(parseCollectorMode(req.TraceMode))
 	contextManager := agentcontext.NewManager(os.Getenv("AGENT_MEMORY_DIR"))

@@ -48,10 +48,18 @@
 - `DELETE /v1/admin/users/:id`
 - `POST /v1/admin/op/training/syncall`
 - `POST /v1/admin/op/training/syncone`
+- `POST /v1/admin/op/training/detect/run`
 - `GET /v1/admin/op/training/syncstate/list`
 - `GET /v1/admin/op/training/summary`
 - `GET /v1/admin/op/training/leaderboard`
 - `GET /v1/admin/op/contest/ranking`
+- `POST /v1/admin/anomaly/detect/run`
+- `GET /v1/admin/anomaly/config`
+- `POST /v1/admin/anomaly/config`
+- `GET /v1/admin/alerts/list`
+- `POST /v1/admin/alerts/resolve/all`
+- `POST /v1/admin/alerts/:id/ack`
+- `POST /v1/admin/alerts/:id/resolve`
 - `POST /v1/admin/agent/task/run`
 
 ## 公开接口
@@ -153,10 +161,19 @@
 
 触发训练数据同步。
 
+请求体（可选）：
+
+```json
+{
+  "detect_after_sync": true
+}
+```
+
 说明：
 
 - 遍历所有有效学生
 - 自动判断全量同步、区间同步或跳过
+- `detect_after_sync=true` 时，同步完成后会立即执行一次异常检测
 
 成功响应重点：
 
@@ -166,6 +183,7 @@
 - `data.success[].mode`
 - `data.failed[].student_id`
 - `data.failed[].error`
+- `data.alert_cnt`：本次同步后检测写入/更新的预警数量（仅当 `detect_after_sync=true`）
 
 ### `POST /v1/admin/op/training/syncone`
 
@@ -175,7 +193,8 @@
 
 ```json
 {
-  "student_id": "230000001"
+  "student_id": "230000001",
+  "detect_after_sync": true
 }
 ```
 
@@ -183,6 +202,17 @@
 
 - `data.student_id`
 - `data.mode`：`full` / `range` / `skip`
+- `data.alert_cnt`：本次同步后检测写入/更新的预警数量（仅当 `detect_after_sync=true`）
+
+### `POST /v1/admin/op/training/detect/run`
+
+手动触发一次训练异常检测（无需先执行同步）。
+
+成功响应重点：
+
+- `data.msg`
+- `data.alert_cnt`
+- `data.detected_at`
 
 ### `GET /v1/admin/op/training/syncstate/list`
 
@@ -270,6 +300,159 @@
 - `data.items[].old_rating`
 - `data.items[].new_rating`
 - `data.items[].rating_change`
+
+### 异常预警
+
+### `POST /v1/admin/anomaly/detect/run`
+
+手动触发一次异常检测。
+
+说明：
+
+- 与 `/v1/admin/op/training/detect/run` 语义一致，均可用于独立检测
+
+成功响应重点：
+
+- `data.msg`
+- `data.alert_cnt`
+- `data.detected_at`
+
+### `GET /v1/admin/anomaly/config`
+
+查询当前异常检测规则参数。
+
+成功响应重点：
+
+- `data.current_window_days`
+- `data.baseline_window_days`
+- `data.baseline_min_daily`
+- `data.current_min_daily_for_alert`
+- `data.drop_low_threshold`
+- `data.drop_medium_threshold`
+- `data.drop_high_threshold`
+- `data.inactive_days_threshold`
+- `data.inactive_days_medium_threshold`
+- `data.inactive_days_high_threshold`
+- `data.inactive_baseline_min_daily`
+- `data.difficulty_drop_current_window_days`
+- `data.difficulty_drop_medium_days_threshold`
+- `data.difficulty_drop_high_days_threshold`
+- `data.difficulty_drop_min_current_total`
+- `data.difficulty_level_round_base`
+- `data.difficulty_relative_high_delta`
+
+说明（高难题规则）：
+
+- 当前规则为“连续未达标”模式，不再与历史占比做对比。
+- `difficulty_drop_current_window_days`：连续多少天未达标触发。
+- `difficulty_drop_medium_days_threshold`：连续多少天未达标触发 medium。
+- `difficulty_drop_high_days_threshold`：连续多少天未达标触发 high。
+- `difficulty_drop_min_current_total`：单日高难题达标阈值（低于该值记为未达标）。
+- `difficulty_level_round_base` 与 `difficulty_relative_high_delta`：用于按学生水平判定“高难题”。
+
+### `POST /v1/admin/anomaly/config`
+
+更新异常检测规则参数（支持部分字段更新）。
+
+请求体示例（完整）：
+
+```json
+{
+  "current_window_days": 7,
+  "baseline_window_days": 30,
+  "baseline_min_daily": 1.0,
+  "current_min_daily_for_alert": 2.0,
+  "drop_low_threshold": 0.35,
+  "drop_medium_threshold": 0.5,
+  "drop_high_threshold": 0.7,
+  "inactive_days_threshold": 3,
+  "inactive_days_medium_threshold": 5,
+  "inactive_days_high_threshold": 7,
+  "inactive_baseline_min_daily": 1.0,
+  "difficulty_drop_current_window_days": 3,
+  "difficulty_drop_medium_days_threshold": 5,
+  "difficulty_drop_high_days_threshold": 7,
+  "difficulty_drop_baseline_window_days": 30,
+  "difficulty_drop_min_current_total": 1,
+  "difficulty_drop_min_baseline_high_ratio": 0.15,
+  "difficulty_level_round_base": 100,
+  "difficulty_relative_high_delta": 200,
+  "difficulty_relative_easy_delta": 200,
+  "difficulty_drop_low_threshold": 0.35,
+  "difficulty_drop_medium_threshold": 0.5,
+  "difficulty_drop_high_threshold": 0.7
+}
+```
+
+请求体示例（只修改一项）：
+
+```json
+{
+  "inactive_days_threshold": 2
+}
+```
+
+说明：
+
+- 参数非法时会返回中文错误提示，例如阈值范围或大小关系不合法。
+- 配置会持久化到数据库，服务重启后仍会保留最近一次保存的配置。
+- 未传入的字段保持原值不变。
+
+### `GET /v1/admin/alerts/list`
+
+查询异常预警列表。
+
+可用查询参数：
+
+- `student_id`
+- `status`：`new` / `ack` / `resolved`
+- `severity`：`low` / `medium` / `high`
+- `from`：开始日期，格式 `YYYY-MM-DD`
+- `to`：结束日期，格式 `YYYY-MM-DD`
+- `page`
+- `count`
+
+成功响应重点：
+
+- `data.count`
+- `data.list[].id`
+- `data.list[].student_id`
+- `data.list[].alert_date`
+- `data.list[].alert_type`
+- `data.list[].severity`
+- `data.list[].status`
+- `data.list[].title`
+- `data.list[].evidence`
+- `data.list[].actions`
+- `data.list[].created_at`
+- `data.list[].updated_at`
+
+### `POST /v1/admin/alerts/:id/ack`
+
+将某条预警标记为“已确认”。
+
+说明：
+
+- `:id` 为预警 ID
+- 成功返回统一 `success` 响应
+
+### `POST /v1/admin/alerts/:id/resolve`
+
+将某条预警标记为“已处理完成”。
+
+说明：
+
+- `:id` 为预警 ID
+- 成功返回统一 `success` 响应
+
+### `POST /v1/admin/alerts/resolve/all`
+
+一键将所有未处理预警（`new`、`ack`）标记为“已处理完成”。
+
+成功响应重点：
+
+- `data.msg`
+- `data.resolved_cnt`：本次批量处理的预警条数
 
 ### Agent 分析
 
