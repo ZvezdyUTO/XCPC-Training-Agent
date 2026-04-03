@@ -17,6 +17,7 @@ const ruleFieldMetas: RuleFieldMeta[] = [
   { key: "current_window_days", label: "题量下降预警-取样窗口天数", desc: "题量下降预警：例如近 7 天", type: "int", step: "1" },
   { key: "baseline_window_days", label: "题量下降预警-基线窗口天数", desc: "题量下降预警：例如前 30 天", type: "int", step: "1" },
   { key: "current_min_daily_for_alert", label: "题量下降预警-当前保护日均阈值", desc: "题量下降预警：每天写的题数高于等于该值即使下降也不报警", type: "float", step: "0.01" },
+  { key: "volume_recovery_ratio_1d", label: "题量下降预警-最近1天恢复抑制比例", desc: "题量下降预警：最近1天题量达到基线日均×该比例时，不触发题量下降预警", type: "float", step: "0.01" },
   { key: "drop_low_threshold", label: "题量下降预警-low阈值", desc: "题量下降预警：相对降幅达到该比例触发 low", type: "float", step: "0.01" },
   { key: "drop_medium_threshold", label: "题量下降预警-medium阈值", desc: "题量下降预警：相对降幅达到该比例触发 medium", type: "float", step: "0.01" },
   { key: "drop_high_threshold", label: "题量下降预警-high阈值", desc: "题量下降预警：相对降幅达到该比例触发 high", type: "float", step: "0.01" },

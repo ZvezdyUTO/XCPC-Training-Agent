@@ -157,3 +157,41 @@ CREATE TABLE anomaly_rule_config
 
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 初始化异常规则配置（id 固定为 1）。
+-- 关键约束：difficulty_drop_current_window_days <=
+--          difficulty_drop_medium_days_threshold <=
+--          difficulty_drop_high_days_threshold。
+INSERT INTO anomaly_rule_config (id, config_json)
+VALUES (
+    1,
+    JSON_OBJECT(
+        'current_window_days', 7,
+        'baseline_window_days', 30,
+        'baseline_min_daily', 1.0,
+        'current_min_daily_for_alert', 2.0,
+        'volume_recovery_ratio_1d', 0.80,
+        'drop_low_threshold', 0.35,
+        'drop_medium_threshold', 0.50,
+        'drop_high_threshold', 0.70,
+        'inactive_days_threshold', 3,
+        'inactive_days_medium_threshold', 5,
+        'inactive_days_high_threshold', 7,
+        'inactive_baseline_min_daily', 1.0,
+        'difficulty_drop_current_window_days', 3,
+        'difficulty_drop_medium_days_threshold', 5,
+        'difficulty_drop_high_days_threshold', 7,
+        'difficulty_drop_baseline_window_days', 30,
+        'difficulty_drop_min_current_total', 1,
+        'difficulty_drop_min_baseline_high_ratio', 0.15,
+        'difficulty_level_round_base', 100,
+        'difficulty_relative_high_delta', 200,
+        'difficulty_relative_easy_delta', 200,
+        'difficulty_drop_low_threshold', 0.35,
+        'difficulty_drop_medium_threshold', 0.50,
+        'difficulty_drop_high_threshold', 0.70
+    )
+)
+ON DUPLICATE KEY UPDATE
+    config_json = VALUES(config_json),
+    updated_at = CURRENT_TIMESTAMP;

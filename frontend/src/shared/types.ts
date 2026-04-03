@@ -92,6 +92,7 @@ export interface AnomalyRuleConfig {
   baseline_window_days: number;
   baseline_min_daily: number;
   current_min_daily_for_alert: number;
+  volume_recovery_ratio_1d: number;
   drop_low_threshold: number;
   drop_medium_threshold: number;
   drop_high_threshold: number;

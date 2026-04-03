@@ -43,6 +43,18 @@ func (s *service) detectVolumeDrop(
 	if baselineAvg < cfg.BaselineMinDaily {
 		return nil, false, nil
 	}
+	// 最近一天若已经明显恢复，则抑制“题量下降”告警，避免对回升中的学生重复打扰。
+	recentStats, err := s.daily.SumRange(ctx, studentID, asOf, asOf)
+	if err != nil {
+		return nil, false, fmt.Errorf("加载最近一天训练数据失败: %w", err)
+	}
+	recentTotal := 0
+	if recentStats != nil {
+		recentTotal = recentStats.CFNewTotal + recentStats.ACNewTotal
+	}
+	if float64(recentTotal) >= baselineAvg*cfg.VolumeRecoveryRatio1D {
+		return nil, false, nil
+	}
 	if currentAvg >= cfg.CurrentMinDailyForAlert {
 		return nil, false, nil
 	}

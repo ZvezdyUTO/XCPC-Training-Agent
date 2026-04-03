@@ -17,6 +17,9 @@ type RuleConfig struct {
 	// CurrentMinDailyForAlert 是当前窗口的绝对日均保护阈值。
 	// 当前日均高于或等于该值时，即使相对历史下降，也不触发告警。
 	CurrentMinDailyForAlert float64 `json:"current_min_daily_for_alert"`
+	// VolumeRecoveryRatio1D 是“最近一天恢复抑制比例”。
+	// 若最近 1 天题量 >= 基线日均 * 该比例，则抑制题量下降告警。
+	VolumeRecoveryRatio1D float64 `json:"volume_recovery_ratio_1d"`
 
 	// DropLowThreshold 是低等级告警的降幅阈值（0~1）。
 	// 例如 0.35 表示较基线下降 35% 触发 low。
@@ -72,6 +75,7 @@ type RuleConfigPatch struct {
 	BaselineWindowDays                 *int     `json:"baseline_window_days"`
 	BaselineMinDaily                   *float64 `json:"baseline_min_daily"`
 	CurrentMinDailyForAlert            *float64 `json:"current_min_daily_for_alert"`
+	VolumeRecoveryRatio1D              *float64 `json:"volume_recovery_ratio_1d"`
 	DropLowThreshold                   *float64 `json:"drop_low_threshold"`
 	DropMediumThreshold                *float64 `json:"drop_medium_threshold"`
 	DropHighThreshold                  *float64 `json:"drop_high_threshold"`
@@ -102,6 +106,8 @@ const (
 	defaultBaselineMinDaily = 1.0
 	// defaultCurrentMinDailyForAlert: 当前窗口“绝对水平仍健康”保护阈值。
 	defaultCurrentMinDailyForAlert = 2.0
+	// defaultVolumeRecoveryRatio1D: 最近 1 天恢复到基线日均 80% 时，抑制题量下降告警。
+	defaultVolumeRecoveryRatio1D = 0.8
 
 	// defaultDropLowThreshold: 降幅达到 35% 记为 low。
 	defaultDropLowThreshold = 0.35
@@ -154,6 +160,7 @@ func defaultRuleConfig() RuleConfig {
 		BaselineWindowDays:                 defaultBaselineWindowDays,
 		BaselineMinDaily:                   defaultBaselineMinDaily,
 		CurrentMinDailyForAlert:            defaultCurrentMinDailyForAlert,
+		VolumeRecoveryRatio1D:              defaultVolumeRecoveryRatio1D,
 		DropLowThreshold:                   defaultDropLowThreshold,
 		DropMediumThreshold:                defaultDropMediumThreshold,
 		DropHighThreshold:                  defaultDropHighThreshold,
@@ -190,6 +197,9 @@ func (c RuleConfig) Validate() error {
 	}
 	if c.CurrentMinDailyForAlert < 0 {
 		return fmt.Errorf("当前窗口告警保护日均阈值必须大于或等于 0")
+	}
+	if c.VolumeRecoveryRatio1D < 0 || c.VolumeRecoveryRatio1D > 1 {
+		return fmt.Errorf("最近一天恢复抑制比例必须在 [0,1] 区间内")
 	}
 	if c.DropLowThreshold < 0 || c.DropLowThreshold > 1 {
 		return fmt.Errorf("低等级降幅阈值必须在 [0,1] 区间内")

@@ -121,6 +121,9 @@ func mergeRuleConfigPatch(dst *RuleConfig, patch RuleConfigPatch) {
 	if patch.CurrentMinDailyForAlert != nil {
 		dst.CurrentMinDailyForAlert = *patch.CurrentMinDailyForAlert
 	}
+	if patch.VolumeRecoveryRatio1D != nil {
+		dst.VolumeRecoveryRatio1D = *patch.VolumeRecoveryRatio1D
+	}
 	if patch.DropLowThreshold != nil {
 		dst.DropLowThreshold = *patch.DropLowThreshold
 	}
